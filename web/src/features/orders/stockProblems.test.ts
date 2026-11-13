@@ -34,6 +34,15 @@ test("sản phẩm Ngừng bán (BH-02): liệt kê từng sản phẩm", () => 
   expect(stockProblems(error, names)).toEqual(["SP002 – Quần jean: đã ngừng bán"]);
 });
 
+test("phiếu xuất vượt tồn khả dụng (TK-03): cùng dạng dòng như chốt đơn", () => {
+  const error = new ApiError(409, {
+    error_code: "INSUFFICIENT_STOCK",
+    message: "Phiếu xuất vượt tồn khả dụng",
+    details: { rule: "TK-03", lines: [{ product_id: "SP002", quantity: 4, available: 1 }] },
+  });
+  expect(stockProblems(error, names)).toEqual(["SP002 – Quần jean: cần 4, tồn khả dụng 1"]);
+});
+
 test("lỗi khác: không có dòng nào", () => {
   const error = new ApiError(409, { error_code: "INVALID_STATE", message: "x", details: {} });
   expect(stockProblems(error, names)).toEqual([]);

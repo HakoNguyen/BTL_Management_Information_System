@@ -1,6 +1,6 @@
 // 5.3 Tồn kho: tồn, khả dụng, mức ngưỡng (TK-01, TK-05) và biến động xuất hủy, điều chỉnh trong kỳ.
 import { useQuery } from "@tanstack/react-query";
-import { Card, Table, Tag, Typography } from "antd";
+import { Card, Table, Tag, Typography, type TableColumnsType } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { LEVEL_STATUS_LABEL, SLIP_TYPE_LABEL } from "../../labels";
@@ -11,6 +11,28 @@ const LEVEL_COLOR: Record<Schemas["LevelStatus"], string> = {
   OK: "green",
   NOT_SET: "default",
 };
+
+/** Cột tồn tại thời điểm lập (dòng `StockReportLine`); dùng chung với trang tồn kho chi nhánh. */
+export const stockLineColumns: TableColumnsType<Schemas["StockReportLine"]> = [
+  { title: "Chi nhánh", dataIndex: "branch_id" },
+  { title: "Mã", dataIndex: "product_id" },
+  { title: "Tên", dataIndex: "name" },
+  { title: "Tồn", dataIndex: "quantity", align: "right" },
+  { title: "Khả dụng", dataIndex: "available", align: "right" },
+  {
+    title: "Ngưỡng tối thiểu",
+    dataIndex: "min_level",
+    align: "right",
+    render: (level: number | null) => level ?? "—",
+  },
+  {
+    title: "Mức tồn",
+    dataIndex: "level_status",
+    render: (status: Schemas["LevelStatus"]) => (
+      <Tag color={LEVEL_COLOR[status]}>{LEVEL_STATUS_LABEL[status]}</Tag>
+    ),
+  },
+];
 
 export function StockReportPage() {
   const [params, setParams] = useState<ReportParams | null>(null);
@@ -32,26 +54,7 @@ export function StockReportPage() {
             rowKey={(line) => `${line.branch_id}-${line.product_id}`}
             dataSource={data.lines}
             scroll={{ x: true }}
-            columns={[
-              { title: "Chi nhánh", dataIndex: "branch_id" },
-              { title: "Mã", dataIndex: "product_id" },
-              { title: "Tên", dataIndex: "name" },
-              { title: "Tồn", dataIndex: "quantity", align: "right" },
-              { title: "Khả dụng", dataIndex: "available", align: "right" },
-              {
-                title: "Ngưỡng tối thiểu",
-                dataIndex: "min_level",
-                align: "right",
-                render: (level: number | null) => level ?? "—",
-              },
-              {
-                title: "Mức tồn",
-                dataIndex: "level_status",
-                render: (status: Schemas["LevelStatus"]) => (
-                  <Tag color={LEVEL_COLOR[status]}>{LEVEL_STATUS_LABEL[status]}</Tag>
-                ),
-              },
-            ]}
+            columns={stockLineColumns}
           />
           <Typography.Title level={5}>Xuất hủy và điều chỉnh trong kỳ</Typography.Title>
           <Table<Schemas["StockMovementLine"]>
