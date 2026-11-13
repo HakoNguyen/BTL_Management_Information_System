@@ -11,7 +11,15 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints
 
-from common.constants import AccountStatus, BranchStatus, EmployeeStatus, ProductStatus, Role
+from common.constants import (
+    AccountStatus,
+    BranchStatus,
+    EmployeeStatus,
+    ProductStatus,
+    Role,
+    SlipStatus,
+    SlipType,
+)
 
 # Chuỗi bắt buộc: bỏ khoảng trắng hai đầu, không rỗng
 NonBlank = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -199,3 +207,61 @@ class CustomerUpdate(BaseModel):
     full_name: NonBlank = None  # type: ignore[assignment]
     phone: NonBlank = None  # type: ignore[assignment]
     address: str | None = None
+
+
+# ---------------------------------------------------------------- Nhóm 4 (vòng 4)
+
+
+class StockLevel(BaseModel):
+    product_id: str
+    quantity: int
+    available: int  # tồn khả dụng, dẫn xuất (TK-01)
+    min_level: int | None  # null = Chưa thiết lập (TK-05)
+
+
+class StockSlipItem(BaseModel):
+    product_id: NonBlank
+    quantity: int = Field(gt=0)
+
+
+class StockSlip(BaseModel):
+    slip_id: str
+    branch_id: str
+    type: SlipType
+    status: SlipStatus
+    created_at: datetime
+    created_by: str | None
+    reason: str | None
+    counterparty: str | None
+    delivery_no: str | None
+    order_id: str | None
+    return_id: str | None
+    adjusts_slip_id: str | None
+    approved_by: str | None  # người quyết định, cả khi từ chối
+    decision_reason: str | None
+    finalized_at: datetime | None
+    items: list[StockSlipItem]
+
+
+class InboundSlipCreate(BaseModel):
+    type: Literal[SlipType.IN_WAREHOUSE, SlipType.IN_SUPPLIER]
+    counterparty: NonBlank
+    delivery_no: NonBlank
+    items: list[StockSlipItem] = Field(min_length=1)
+
+
+class StockSlipCreate(BaseModel):
+    type: Literal[
+        SlipType.ADJUST_UP, SlipType.OUT_DISPOSAL, SlipType.OUT_TO_WAREHOUSE, SlipType.ADJUST_DOWN
+    ]
+    reason: NonBlank
+    adjusts_slip_id: str | None = None
+    items: list[StockSlipItem] = Field(min_length=1)
+
+
+class StockSlipReject(BaseModel):
+    reason: NonBlank  # K-03
+
+
+class MinLevelChange(BaseModel):
+    min_level: int | None  # âm thì service trả VALIDATION_ERROR TK-05

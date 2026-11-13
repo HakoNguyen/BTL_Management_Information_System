@@ -402,6 +402,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Stock */
+        get: operations["list_stock_stock_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stock-slips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Slips */
+        get: operations["list_slips_stock_slips_get"];
+        put?: never;
+        /** Create Slip */
+        post: operations["create_slip_stock_slips_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stock-slips/inbound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Inbound */
+        post: operations["create_inbound_stock_slips_inbound_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stock-slips/{slip_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Slip */
+        get: operations["get_slip_stock_slips__slip_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stock-slips/{slip_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Slip */
+        post: operations["approve_slip_stock_slips__slip_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stock-slips/{slip_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Slip */
+        post: operations["reject_slip_stock_slips__slip_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stock/{product_id}/min-level": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Min Level */
+        put: operations["set_min_level_stock__product_id__min_level_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -599,6 +719,20 @@ export interface components {
              */
             status: "ok";
         };
+        /** InboundSlipCreate */
+        InboundSlipCreate: {
+            /** Counterparty */
+            counterparty: string;
+            /** Delivery No */
+            delivery_no: string;
+            /** Items */
+            items: components["schemas"]["StockSlipItem"][];
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "IN_WAREHOUSE" | "IN_SUPPLIER";
+        };
         /** LoginRequest */
         LoginRequest: {
             /** Password */
@@ -611,6 +745,11 @@ export interface components {
             /** Token */
             token: string;
             user: components["schemas"]["CurrentUser"];
+        };
+        /** MinLevelChange */
+        MinLevelChange: {
+            /** Min Level */
+            min_level: number | null;
         };
         /** PriceChange */
         PriceChange: {
@@ -713,6 +852,89 @@ export interface components {
          * @enum {string}
          */
         Role: "HQ" | "MANAGER" | "SALES" | "CASHIER" | "WAREHOUSE";
+        /**
+         * SlipStatus
+         * @enum {string}
+         */
+        SlipStatus: "PENDING" | "POSTED" | "CANCELLED";
+        /**
+         * SlipType
+         * @enum {string}
+         */
+        SlipType: "IN_WAREHOUSE" | "IN_SUPPLIER" | "IN_RETURN" | "ADJUST_UP" | "OUT_SALE" | "OUT_DISPOSAL" | "OUT_TO_WAREHOUSE" | "ADJUST_DOWN";
+        /** StockLevel */
+        StockLevel: {
+            /** Available */
+            available: number;
+            /** Min Level */
+            min_level: number | null;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /** StockSlip */
+        StockSlip: {
+            /** Adjusts Slip Id */
+            adjusts_slip_id: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /** Branch Id */
+            branch_id: string;
+            /** Counterparty */
+            counterparty: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string | null;
+            /** Decision Reason */
+            decision_reason: string | null;
+            /** Delivery No */
+            delivery_no: string | null;
+            /** Finalized At */
+            finalized_at: string | null;
+            /** Items */
+            items: components["schemas"]["StockSlipItem"][];
+            /** Order Id */
+            order_id: string | null;
+            /** Reason */
+            reason: string | null;
+            /** Return Id */
+            return_id: string | null;
+            /** Slip Id */
+            slip_id: string;
+            status: components["schemas"]["SlipStatus"];
+            type: components["schemas"]["SlipType"];
+        };
+        /** StockSlipCreate */
+        StockSlipCreate: {
+            /** Adjusts Slip Id */
+            adjusts_slip_id?: string | null;
+            /** Items */
+            items: components["schemas"]["StockSlipItem"][];
+            /** Reason */
+            reason: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "ADJUST_UP" | "OUT_DISPOSAL" | "OUT_TO_WAREHOUSE" | "ADJUST_DOWN";
+        };
+        /** StockSlipItem */
+        StockSlipItem: {
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /** StockSlipReject */
+        StockSlipReject: {
+            /** Reason */
+            reason: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1648,6 +1870,255 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Product"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_stock_stock_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockLevel"][];
+                };
+            };
+        };
+    };
+    list_slips_stock_slips_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["SlipStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSlip"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_slip_stock_slips_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockSlipCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_inbound_stock_slips_inbound_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InboundSlipCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_slip_stock_slips__slip_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_slip_stock_slips__slip_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_slip_stock_slips__slip_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockSlipReject"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_min_level_stock__product_id__min_level_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MinLevelChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockLevel"];
                 };
             };
             /** @description Validation Error */

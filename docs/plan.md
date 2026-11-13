@@ -4,7 +4,7 @@ File này cho biết dự án đang ở đâu và việc tiếp theo là gì. Đ
 
 ## 1. Tiến độ
 
-**Vòng tiếp theo: 4 (nhóm 4 – tồn kho).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
+**Vòng tiếp theo: 5 (nhóm 3 – đơn hàng).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
 dùng dữ liệu và hàm của vòng trước.
 
 | Vòng | Module | Nhánh | Chức năng | Quy tắc | Tình huống KT | Trạng thái |
@@ -13,7 +13,7 @@ dùng dữ liệu và hàm của vòng trước.
 | 1 | `staff` | `staff/employees-branches-accounts` | 6.1, 6.2, 6.3, 6.4 | NV-01 đến NV-04, K-05 | — | **xong** (13/11/2026) |
 | 2 | `products` | `products/catalog-pricing` | 1.1, 1.2, 1.3, 1.4 | SP-01 đến SP-04 | — | **xong** (13/11/2026) |
 | 3 | `customers` | `customers/profiles` | 2.1, 2.2, 2.3 | KH-01 đến KH-03 | — | **xong** (13/11/2026) |
-| 4 | `inventory` | `inventory/stock-slips` | 4.1, 4.2, 4.3, 4.5 và 5 hàm giao | TK-01 đến TK-05 | KT-12 | chưa làm |
+| 4 | `inventory` | `inventory/stock-slips` | 4.1, 4.2, 4.3, 4.5 và 5 hàm giao | TK-01 đến TK-05 | KT-12 | **xong** (13/11/2026) |
 | 5 | `orders` | `orders/create-confirm-cancel` | 3.1; 3.4 phần hủy đơn | BH-01 đến BH-04, SP-03 | KT-02, KT-03 | chưa làm |
 | 6 | `shifts`, `payments`, `bank-mock` | `payments/shifts-collection-invoice` | 3.5, 3.2, 3.3 | CA-01 đến CA-04, TT-01 đến TT-04 | KT-01, 04, 05, 06, 11, 16 | chưa làm |
 | 7 | `returns`, `customers` | `returns/return-refund` | 3.4 phần phiếu trả và hoàn tiền; 2.4 | TH-01 đến TH-05, KH-04 | KT-08, KT-09 | chưa làm |
@@ -187,12 +187,15 @@ Các điểm đặc tả để trống ở mức triển khai, đã được ng�
     hồ sơ có sẵn với HTTP 200, không sửa họ tên, địa chỉ. 2.3 tra đúng một tiêu chí (số hoặc mã), trả mảng 0–1 phần
     tử; tra hoặc sửa KHLE trả `RULE_VIOLATION` KH-02 ([api.md](api.md) nhóm 2).
 
+13. Vòng 4 (duyệt 13/11/2026): lý do hủy đơn, xuất hủy, điều chỉnh là văn bản tự do; báo cáo gom theo đúng chuỗi lý
+    do; giao diện gợi ý sẵn các lý do thường gặp. Nhập hàng từ kho tổng/NCC cho sản phẩm Ngừng bán được phép. Lý do
+    QL từ chối phiếu kho (K-03) lưu ở cột mới `stock_slips.decision_reason` (migration 003); `approved_by` lưu người
+    quyết định cả khi duyệt lẫn từ chối.
+
 Giả định của người dựng khung, **chưa được người dùng xác nhận**. Vòng nào chạm tới thì nêu lại ở `/plan-task`:
 
 - Trụ sở duyệt thay (K-02): hệ thống không tự biết QL vắng mặt, nên cho phép Trụ sở duyệt khi có lý do bắt buộc.
 - Người làm chứng khi đóng ca thay (CA-04): nhân viên Đang làm cùng chi nhánh, khác QL đóng thay và khác thu ngân của ca.
-- Lý do hủy đơn, xuất hủy, điều chỉnh là văn bản tự do; báo cáo gom theo đúng chuỗi lý do; giao diện gợi ý sẵn các lý do thường gặp.
-- Nhập hàng từ kho tổng/NCC cho sản phẩm Ngừng bán: đặc tả không nói; tạm cho phép.
 
 ## 8. Việc hoãn có chủ đích
 

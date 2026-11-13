@@ -183,6 +183,37 @@ Không có endpoint xóa khách (KH-03). Khách dùng chung toàn chuỗi (G-06)
 | 4.5 | `PUT /stock/{product_id}/min-level` | QL | TK-05 |
 | 4.4 | `POST /replenishment-requests`, `GET /replenishment-requests` | KHO (xem: QL, KHO) | TK-06 |
 
+Trường (chốt ở vòng 4). `?` là trường không bắt buộc. Chi nhánh luôn là chi nhánh của người gọi; phiếu của chi nhánh
+khác trả `FORBIDDEN` `rule` = K-01.
+
+| Model | Trường |
+| --- | --- |
+| `StockLevel` (response) | `product_id`, `quantity`, `available` (tồn khả dụng, TK-01), `min_level` (null = Chưa thiết lập) |
+| `StockSlipItem` | `product_id`, `quantity` (> 0) |
+| `StockSlip` (response) | `slip_id`, `branch_id`, `type` (`SlipType`), `status` (`SlipStatus`), `created_at`, `created_by`, `reason`, `counterparty`, `delivery_no`, `order_id`, `return_id`, `adjusts_slip_id`, `approved_by` (người quyết định duyệt hoặc từ chối), `decision_reason`, `finalized_at` (các trường sau `created_at` null được), `items` (`StockSlipItem[]`) |
+| `InboundSlipCreate` | `type` (`IN_WAREHOUSE` hoặc `IN_SUPPLIER`), `counterparty`, `delivery_no`, `items` (≥ 1 dòng, mỗi sản phẩm một dòng) |
+| `StockSlipCreate` | `type` (`ADJUST_UP`, `OUT_DISPOSAL`, `OUT_TO_WAREHOUSE` hoặc `ADJUST_DOWN`), `reason`, `adjusts_slip_id?` (chỉ phiếu điều chỉnh), `items` (như trên) |
+| `StockSlipReject` | `reason` (bắt buộc, K-03) |
+| `MinLevelChange` | `min_level` (số nguyên ≥ 0 hoặc null = Chưa thiết lập) |
+
+| Endpoint | Request → response | Lỗi nghiệp vụ |
+| --- | --- | --- |
+| `GET /stock` | → `StockLevel[]`: mọi sản phẩm, cặp chưa có bản ghi là tồn 0, chưa đặt ngưỡng (TK-01) | |
+| `POST /stock-slips/inbound` | `InboundSlipCreate` → `201 StockSlip` `POSTED`, tồn tăng ngay | `RULE_VIOLATION` TK-02 (chi nhánh Ngừng hoạt động); `DUPLICATE` TK-02 (bộ bên giao, số phiếu giao đã ghi ở chi nhánh); `NOT_FOUND` (sản phẩm); `VALIDATION_ERROR` (trùng sản phẩm) |
+| `POST /stock-slips` | `StockSlipCreate` → `201 StockSlip` `PENDING`; phiếu xuất giữ hàng | `INSUFFICIENT_STOCK` TK-03 (phiếu xuất vượt tồn khả dụng; `details.lines` gồm `product_id`, `quantity`, `available`); `NOT_FOUND` (sản phẩm, phiếu bị điều chỉnh không thuộc chi nhánh); `VALIDATION_ERROR` TK-04 (`adjusts_slip_id` trên phiếu không phải điều chỉnh) |
+| `GET /stock-slips?status=…` | → `StockSlip[]` của chi nhánh, mới nhất trước; `status?` lọc theo `SlipStatus` | |
+| `GET /stock-slips/{slip_id}` | → `StockSlip` | `NOT_FOUND`; `FORBIDDEN` K-01 |
+| `POST /stock-slips/{slip_id}/approve` | → `StockSlip` `POSTED`; tồn tăng (điều chỉnh tăng) hoặc giảm (phiếu xuất) | `NOT_FOUND`; `FORBIDDEN` K-01; `INVALID_STATE` (không ở `PENDING`, hoặc là phiếu nhập, xuất bán: không qua QL duyệt); `FORBIDDEN` K-02 (người duyệt là người lập) |
+| `POST /stock-slips/{slip_id}/reject` | `StockSlipReject` → `StockSlip` `CANCELLED`, nhả hàng giữ | như `approve` |
+| `PUT /stock/{product_id}/min-level` | `MinLevelChange` → `StockLevel`; không đổi tồn | `NOT_FOUND`; `VALIDATION_ERROR` TK-05 (âm) |
+
+Phiếu kho không có duyệt thay (TK-03): HQ không gọi được `approve`, `reject`. Hàm giao ở mục 5 dùng chung cách khóa:
+`SELECT … FOR UPDATE` các dòng `stock` theo `product_id` tăng dần rồi mới tính tồn khả dụng. `check_available` trả
+danh sách dòng thiếu dạng `{product_id, quantity, available}`; `hold_for_order`, `receive_return` trả `slip_id`
+(`receive_return` không có dòng nào thì không tạo phiếu, trả `None`; gọi lần hai cho cùng phiếu trả: `DUPLICATE` TH-05);
+`hold_for_order` khi đơn đã có phiếu xuất bán chưa hủy ném `INVALID_STATE` TK-03;
+`confirm_sale`, `release_hold` không tìm thấy phiếu xuất bán `PENDING` của đơn thì ném `INVALID_STATE`.
+
 ### Nhóm 3 – Bán hàng và thanh toán (vòng 5, 6, 7)
 
 | Chức năng | Method, đường dẫn | Vai trò | Quy tắc | Vòng |
