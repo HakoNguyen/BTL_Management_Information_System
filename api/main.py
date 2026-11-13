@@ -5,6 +5,7 @@ Chạy: uvicorn main:app (thư mục làm việc là api/, gốc repo nằm tron
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from collections.abc import AsyncIterator
@@ -19,11 +20,13 @@ from routers import (
     orders,
     payments,
     products,
+    reports,
     returns,
     shifts,
     staff,
 )
 from services import auth as auth_service
+from workers import closing
 
 from common.constants import (
     ENV_ADMIN_PASSWORD,
@@ -50,9 +53,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await auth_service.ensure_bootstrap_admin(
             conn, os.environ[ENV_ADMIN_USERNAME], os.environ[ENV_ADMIN_PASSWORD]
         )
+    closing_task = asyncio.create_task(closing.loop(state.pool))
     try:
         yield
     finally:
+        closing_task.cancel()
         await state.pool.close()
 
 
@@ -74,6 +79,7 @@ def create_app() -> FastAPI:
     app.include_router(shifts.router)
     app.include_router(payments.router)
     app.include_router(returns.router)
+    app.include_router(reports.router)
     return app
 
 

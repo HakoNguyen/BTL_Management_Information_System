@@ -590,6 +590,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/replenishment-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Replenishments */
+        get: operations["list_replenishments_replenishment_requests_get"];
+        put?: never;
+        /** Create Replenishment */
+        post: operations["create_replenishment_replenishment_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/low-stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Low Stock */
+        get: operations["low_stock_reports_low_stock_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/returns": {
         parameters: {
             query?: never;
@@ -1244,6 +1279,34 @@ export interface components {
             token: string;
             user: components["schemas"]["CurrentUser"];
         };
+        /** LowStockLine */
+        LowStockLine: {
+            /** Min Level */
+            min_level: number | null;
+            /** Name */
+            name: string;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /**
+         * LowStockReport
+         * @description 5.4: tính lúc gọi, không lưu (TK-05).
+         */
+        LowStockReport: {
+            /** Below Min */
+            below_min: components["schemas"]["LowStockLine"][];
+            /** Branch Id */
+            branch_id: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Not Set */
+            not_set: components["schemas"]["LowStockLine"][];
+        };
         /** MinLevelChange */
         MinLevelChange: {
             /** Min Level */
@@ -1434,6 +1497,38 @@ export interface components {
          * @enum {string}
          */
         RefundStatus: "NOT_REFUNDED" | "PENDING" | "REFUNDED";
+        /**
+         * ReplenishType
+         * @enum {string}
+         */
+        ReplenishType: "TRANSFER" | "SUPPLIER";
+        /** ReplenishmentCreate */
+        ReplenishmentCreate: {
+            /** Items */
+            items: components["schemas"]["StockSlipItem"][];
+            /** Recipient */
+            recipient: string;
+            type: components["schemas"]["ReplenishType"];
+        };
+        /** ReplenishmentRequest */
+        ReplenishmentRequest: {
+            /** Branch Id */
+            branch_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Items */
+            items: components["schemas"]["StockSlipItem"][];
+            /** Recipient */
+            recipient: string;
+            /** Request Id */
+            request_id: string;
+            type: components["schemas"]["ReplenishType"];
+        };
         /** ReturnCreate */
         ReturnCreate: {
             /** Items */
@@ -3097,6 +3192,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_replenishments_replenishment_requests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplenishmentRequest"][];
+                };
+            };
+        };
+    };
+    create_replenishment_replenishment_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplenishmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplenishmentRequest"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    low_stock_reports_low_stock_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LowStockReport"];
                 };
             };
         };

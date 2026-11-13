@@ -4,7 +4,7 @@ File này cho biết dự án đang ở đâu và việc tiếp theo là gì. Đ
 
 ## 1. Tiến độ
 
-**Vòng tiếp theo: 8 (giờ đóng cửa, yêu cầu bổ sung, cảnh báo tồn).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
+**Vòng tiếp theo: 9 (báo cáo).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
 dùng dữ liệu và hàm của vòng trước.
 
 | Vòng | Module | Nhánh | Chức năng | Quy tắc | Tình huống KT | Trạng thái |
@@ -17,7 +17,7 @@ dùng dữ liệu và hàm của vòng trước.
 | 5 | `orders` | `orders/create-confirm-cancel` | 3.1; 3.4 phần hủy đơn | BH-01 đến BH-04, SP-03 | KT-02, KT-03 | **xong** (13/11/2026) |
 | 6 | `shifts`, `payments`, `bank-mock` | `payments/shifts-collection-invoice` | 3.5, 3.2, 3.3 | CA-01 đến CA-04, TT-01 đến TT-04 | KT-01, 04, 05, 06, 11, 16 | **xong** (13/11/2026) |
 | 7 | `returns`, `customers` | `returns/return-refund` | 3.4 phần phiếu trả và hoàn tiền; 2.4 | TH-01 đến TH-05, KH-04 | KT-08, KT-09 | **xong** (13/11/2026) |
-| 8 | `workers/closing`, `inventory`, `reports` | `closing/end-of-day-replenishment` | Sự kiện giờ đóng cửa; 4.4; 5.4 | BH-05, TH-03, TK-06 | KT-07, KT-14 | chưa làm |
+| 8 | `workers/closing`, `inventory`, `reports` | `closing/end-of-day-replenishment` | Sự kiện giờ đóng cửa; 4.4; 5.4 | BH-05, TH-03, TK-06 | KT-07, KT-14 | **xong** (13/11/2026) |
 | 9 | `reports` | `reports/revenue-stock-staff` | 5.1, 5.2, 5.3, 5.5 | DT-01 đến DT-05 | KT-10, 13, 15 | chưa làm |
 | 10 | `web` | `web/role-screens` | Giao diện theo 5 vai trò; dữ liệu demo | Ma trận 2.2 | chạy tay luồng P1–P5 | chưa làm |
 
@@ -204,14 +204,17 @@ Các điểm đặc tả để trống ở mức triển khai, đã được ng�
 
 Giả định của người dựng khung, **chưa được người dùng xác nhận**. Vòng nào chạm tới thì nêu lại ở `/plan-task`:
 
-- (Không còn; trụ sở duyệt thay đã chốt ở quyết định 14 và 15.)
+- Vòng 8: tự hủy, tự từ chối ghi thời điểm là lúc tác vụ chạy (`at`), không phải mốc đóng cửa; tác vụ quét mỗi
+  60 giây và chạy bù cho lần đóng cửa bị lỡ khi api tắt.
+- Vòng 8: 5.4 so `stock.quantity` (tồn, theo TK-05) chứ không so tồn khả dụng; mục Chưa thiết lập chỉ gồm sản phẩm
+  Đang bán. 4.4 không kiểm tra chi nhánh Ngừng hoạt động (TK-06 không nêu) và response không kèm tồn, ngưỡng
+  (giao diện lấy từ `GET /stock`).
 
 ## 8. Việc hoãn có chủ đích
 
 | Việc | Lý do | Làm ở |
 | --- | --- | --- |
 | Container `bank-mock` | Chưa có giao dịch nào để gọi | Vòng 6 |
-| Tác vụ nền giờ đóng cửa | Chưa có đơn và phiếu trả để quét | Vòng 8 |
 | Dữ liệu demo, kịch bản demo | Cần đủ API và giao diện | Vòng 10 |
 | Index phụ cho truy vấn | Chưa có truy vấn thật để đo | Khi báo cáo chậm, bằng migration mới |
 | CODEOWNERS, lệnh `/review-pr` | Một người làm, không có PR chéo | Khi có người thứ hai cùng code |

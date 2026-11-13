@@ -217,6 +217,19 @@ khác trả `FORBIDDEN` `rule` = K-01.
 | `POST /stock-slips/{slip_id}/reject` | `StockSlipReject` → `StockSlip` `CANCELLED`, nhả hàng giữ | như `approve` |
 | `PUT /stock/{product_id}/min-level` | `MinLevelChange` → `StockLevel`; không đổi tồn | `NOT_FOUND`; `VALIDATION_ERROR` TK-05 (âm) |
 
+Trường 4.4 (chốt ở vòng 8). Yêu cầu lưu như đã gửi, không đổi tồn, không có trạng thái giao nhận (TK-06); tồn và
+ngưỡng hiện tại giao diện lấy từ `GET /stock`.
+
+| Model | Trường |
+| --- | --- |
+| `ReplenishmentCreate` | `type` (`ReplenishType`), `recipient` (nơi nhận: kho tổng hoặc tên NCC, không rỗng), `items` (`StockSlipItem[]`, ≥ 1 dòng, mỗi sản phẩm một dòng) |
+| `ReplenishmentRequest` (response) | `request_id`, `branch_id`, `created_by`, `created_at`, `type`, `recipient`, `items` (`StockSlipItem[]`) |
+
+| Endpoint | Request → response | Lỗi nghiệp vụ |
+| --- | --- | --- |
+| `POST /replenishment-requests` | `ReplenishmentCreate` → `201 ReplenishmentRequest` | `NOT_FOUND` (sản phẩm); `RULE_VIOLATION` TK-06 (sản phẩm Ngừng bán); `VALIDATION_ERROR` (số lượng ≤ 0, trùng sản phẩm, không có dòng) |
+| `GET /replenishment-requests` | → `ReplenishmentRequest[]` của chi nhánh, mới nhất trước | |
+
 Phiếu kho không có duyệt thay (TK-03): HQ không gọi được `approve`, `reject`. Hàm giao ở mục 5 dùng chung cách khóa:
 `SELECT … FOR UPDATE` các dòng `stock` theo `product_id` tăng dần rồi mới tính tồn khả dụng. `check_available` trả
 danh sách dòng thiếu dạng `{product_id, quantity, available}`; `hold_for_order`, `receive_return` trả `slip_id`
@@ -347,6 +360,15 @@ Mỗi báo cáo trả kèm phạm vi chi nhánh, kỳ lọc và thời điểm l
 | 5.3 | `GET /reports/stock` | HQ, QL, KHO | TK-01, TK-05 | 9 |
 | 5.5 | `GET /reports/staff-sales` | HQ, QL, BH (của mình) | DT-05 | 9 |
 
+Trường 5.4 (chốt ở vòng 8). Ảnh chụp tình trạng hiện tại nên không có `from`, `to`; luôn là chi nhánh của người gọi;
+tính lúc gọi, không lưu (quyết định 6 ở [plan.md](plan.md) mục 7). Chỉ xét sản phẩm Đang bán; "dưới ngưỡng" là
+`quantity` < `min_level` (TK-05), sắp theo `product_id`.
+
+| Model | Trường |
+| --- | --- |
+| `LowStockLine` | `product_id`, `name`, `quantity` (tồn, cặp chưa có bản ghi là 0), `min_level` (null ở danh sách Chưa thiết lập) |
+| `LowStockReport` (response của `GET /reports/low-stock`) | `branch_id`, `generated_at`, `below_min` (`LowStockLine[]`: đã đặt ngưỡng và tồn < ngưỡng), `not_set` (`LowStockLine[]`: Chưa thiết lập ngưỡng) |
+
 ## 5. Hàm giao giữa các module
 
 Mỗi kho chỉ do nhóm sở hữu ghi (đặc tả 6.1). Module khác muốn làm thay đổi kho đó thì gọi hàm dưới đây, truyền
@@ -363,6 +385,17 @@ Mỗi kho chỉ do nhóm sở hữu ghi (đặc tả 6.1). Module khác muốn l
 | `orders.mark_completed(conn, order_id, at)` | vòng 5 | 3.2 khi thu Thành công | Đơn `AWAITING_PAYMENT` sang `COMPLETED`, ghi `completed_at` |
 | `payments.has_pending_txn(conn, order_id)` | vòng 6 | 3.1 mở lại, 3.4 hủy đơn | Đơn có giao dịch `PENDING` hay không (BH-03, BH-04, BH-05) |
 | `orders.mark_returned(conn, order_id, fully)` | vòng 7 | 3.4 khi phiếu trả Đã duyệt | Đơn `COMPLETED`/`PARTIALLY_RETURNED` sang `FULLY_RETURNED` nếu `fully`, ngược lại `PARTIALLY_RETURNED`; giữ `completed_at` (TH-05) |
+
+Sự kiện giờ đóng cửa (vòng 8): `api/workers/closing.py` có `run_closing(conn, at)`. Với mỗi chi nhánh, mốc đóng cửa
+là lần `closing_time` (giờ Việt Nam) gần nhất ≤ `at`; chứng từ lập sau mốc đó chờ lần đóng cửa kế tiếp (quyết định 9).
+Hàm gọi hai hàm của chủ kho D3, mỗi hàm một transaction, chạy lại nhiều lần không đổi kết quả:
+
+| Hàm | Chủ | Việc làm |
+| --- | --- | --- |
+| `orders.cancel_overdue(conn, branch_id, closing_at, at)` | vòng 8 | Đơn `DRAFT`/`AWAITING_PAYMENT` lập ≤ `closing_at`, không có giao dịch `PENDING` (`payments.has_pending_txn`): sang `CANCELLED`, `cancelled_by` NULL (Hệ thống), `cancel_reason` = `OVERDUE_CANCEL_REASON` (BH-05). Trả mã đơn đã hủy |
+| `returns.reject_overdue(conn, branch_id, closing_at, at)` | vòng 8 | Phiếu trả `PENDING` lập ≤ `closing_at` của đơn thuộc chi nhánh: sang `REJECTED`, `decided_by` NULL, `decision_note` = `OVERDUE_REJECT_REASON` (TH-03). Trả mã phiếu |
+
+Vòng lặp nền khởi động trong `lifespan`, gọi `run_closing(conn, clock.now())` mỗi 60 giây.
 
 Vòng nào cần một hàm mà chủ của nó chưa viết (ví dụ vòng 5 cần `payments.has_pending_txn`) thì vòng đó tạo hàm
 với đúng chữ ký trên, đặt đúng file của chủ, kèm test.

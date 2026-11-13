@@ -1,4 +1,4 @@
-"""Nhóm 4 – Tồn kho (docs/api.md mục 4). NV kho lập phiếu, QL duyệt; không có duyệt thay."""
+"""Nhóm 4 – Tồn kho (docs/api.md mục 4). NV kho lập phiếu, yêu cầu bổ sung; QL duyệt phiếu."""
 
 from __future__ import annotations
 
@@ -13,6 +13,8 @@ from common.models import (
     CurrentUser,
     InboundSlipCreate,
     MinLevelChange,
+    ReplenishmentCreate,
+    ReplenishmentRequest,
     StockLevel,
     StockSlip,
     StockSlipCreate,
@@ -72,3 +74,15 @@ async def reject_slip(
     slip_id: str, body: StockSlipReject, user: ManagerUser, conn: Conn
 ) -> StockSlip:
     return await inventory.decide_slip(conn, slip_id, user, body.reason)
+
+
+@router.post("/replenishment-requests", status_code=201)
+async def create_replenishment(
+    body: ReplenishmentCreate, user: WarehouseUser, conn: Conn
+) -> ReplenishmentRequest:
+    return await inventory.create_replenishment(conn, body, user)
+
+
+@router.get("/replenishment-requests")
+async def list_replenishments(user: SlipViewer, conn: Conn) -> list[ReplenishmentRequest]:
+    return await inventory.list_replenishments(conn, user)
