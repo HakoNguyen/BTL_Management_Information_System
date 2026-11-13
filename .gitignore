@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+node_modules/
+web/dist/
+# File trung gian của make gen-api; bản được commit là web/src/api/schema.d.ts
+web/openapi.json
+
+.vscode/
+.idea/

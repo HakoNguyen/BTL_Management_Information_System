@@ -1,0 +1,18 @@
+# Chỉ dùng cho cấu hình công cụ; dependency nằm trong requirements*.txt
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# importlib: cho phép trùng tên file test giữa các thư mục tests/<module>/
+addopts = "--import-mode=importlib"
+testpaths = ["tests"]
+markers = [
+  "db: cần PostgreSQL (container db). Máy cá nhân chưa bật db thì bị skip; trên CI thì báo lỗi",
+]

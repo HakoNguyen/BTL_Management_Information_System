@@ -1,0 +1,62 @@
+# Toàn bộ hệ thống trên một máy. Chạy từ gốc repo: make up
+#   docker compose --env-file .env -f infra/compose.yml up -d --build
+# Biến lấy từ .env ở gốc repo (xem .env.example).
+name: qlbh
+
+services:
+  db:
+    image: postgres:16
+    container_name: qlbh-db
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Thieu POSTGRES_PASSWORD trong .env}
+      POSTGRES_DB: qlbh
+    ports:
+      # Mở ra máy host để pytest và công cụ quản trị CSDL kết nối
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # -h localhost: lúc initdb máy chủ tạm chỉ nghe socket, nên chỉ healthy khi khởi tạo xong
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "postgres", "-d", "qlbh"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    container_name: qlbh-api
+    environment:
+      # Schema do api tự áp dụng lúc khởi động (db/migrate.py)
+      DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/qlbh
+      SECRET_KEY: ${SECRET_KEY:?Thieu SECRET_KEY trong .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Thieu ADMIN_PASSWORD trong .env}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+    container_name: qlbh-web
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db-data:

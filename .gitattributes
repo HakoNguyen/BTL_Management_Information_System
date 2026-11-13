@@ -1,0 +1,4 @@
+# Mọi file văn bản dùng LF: file được copy vào container Linux, và diff giữa các máy không lệch
+* text=auto eol=lf
+*.png binary
+*.webp binary

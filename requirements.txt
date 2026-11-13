@@ -1,0 +1,8 @@
+# Chi viet ASCII trong file nay: pip tren Windows doc file theo bang ma cua may, gap dau tieng Viet la loi.
+# Danh sach thu vien co dinh (CLAUDE.md). Khong them thu vien khi chua duoc nguoi dung duyet.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+asyncpg>=0.29
+pydantic>=2.6
+# Goi cong thanh toan (vong 6); test dung httpx.ASGITransport
+httpx>=0.27
