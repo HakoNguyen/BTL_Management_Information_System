@@ -65,7 +65,7 @@ Mỗi test assert đủ mọi ý trong cột "Kết quả kỳ vọng" của tì
 | KT-09 | Hoàn thẻ thất bại | `tests/returns/test_kt09_hoan_the_that_bai.py` | 7 | chưa viết |
 | KT-10 | Bán, trả, hoàn khác ngày | `tests/reports/test_kt10_khac_ngay.py` | 9 | chưa viết |
 | KT-11 | Đối soát ca | `tests/shifts/test_kt11_doi_soat_ca.py` | 6 | chưa viết |
-| KT-12 | Nhập nhầm và nhập trùng | `tests/inventory/test_kt12_nhap_nham.py` | 4 | chưa viết |
+| KT-12 | Nhập nhầm và nhập trùng | `tests/inventory/test_kt12_nhap_nham.py` | 4 | xanh |
 | KT-13 | Ngừng bán và đóng chi nhánh | `tests/staff/test_kt13_dong_chi_nhanh.py` | 9 | chưa viết |
 | KT-14 | Ngưỡng và yêu cầu bổ sung | `tests/inventory/test_kt14_nguong.py` | 8 | chưa viết |
 | KT-15 | Phê duyệt và lịch sử | `tests/reports/test_kt15_phe_duyet.py` | 9 | chưa viết |
