@@ -236,6 +236,31 @@ danh sách dòng thiếu dạng `{product_id, quantity, available}`; `hold_for_o
 | 3.4 | `POST /returns/{return_id}/refunds` (khởi tạo hoàn) | TN | TH-04 | 7 |
 | 3.4 | `POST /transactions/{txn_id}/approve-cash-refund` | QL; HQ khi duyệt thay | TH-04 | 7 |
 
+Trường đơn hàng (chốt ở vòng 5). Đơn luôn thuộc chi nhánh của người lập (BH-01); đơn của chi nhánh khác trả
+`FORBIDDEN` `rule` = K-01. "Đơn mình lập": NVBH chỉ thao tác đơn do mình lập, QL thao tác mọi đơn của chi nhánh;
+NVBH thao tác đơn người khác lập trả `FORBIDDEN` với `rule` của endpoint (BH-03, hủy là BH-04).
+
+| Model | Trường |
+| --- | --- |
+| `OrderItemInput` | `product_id`, `quantity` (> 0) |
+| `OrderItem` (response) | `product_id`, `quantity`, `unit_price` (đơn giá chốt; null khi đơn Đang lập) |
+| `Order` (response) | `order_id`, `branch_id`, `customer_id`, `created_by`, `created_at`, `status` (`OrderStatus`), `confirmed_at`, `completed_at`, `cancelled_at`, `cancelled_by` (null = Hệ thống), `cancel_reason` (các trường sau `status` null được), `total` (Σ số lượng × đơn giá chốt, dẫn xuất; null khi Đang lập), `items` (`OrderItem[]`) |
+| `OrderCreate` | `customer_id` (KHLE cho khách lẻ), `items` (≥ 1 dòng, mỗi sản phẩm một dòng) |
+| `OrderItemsChange` | `items` (như trên; thay toàn bộ dòng của đơn) |
+| `OrderCancel` | `reason` (bắt buộc, K-03) |
+
+| Endpoint | Request → response | Lỗi nghiệp vụ |
+| --- | --- | --- |
+| `POST /orders` | `OrderCreate` → `201 Order` `DRAFT` | `NOT_FOUND` (khách, sản phẩm); `VALIDATION_ERROR` BH-01 (trùng sản phẩm) |
+| `GET /orders?status=…` | → `Order[]` của chi nhánh, mới nhất trước; `status?` lọc theo `OrderStatus` | |
+| `GET /orders/{order_id}` | → `Order` | `NOT_FOUND`; `FORBIDDEN` K-01 |
+| `PUT /orders/{order_id}/items` | `OrderItemsChange` → `Order` | như `POST /orders`; `FORBIDDEN` K-01, BH-03; `INVALID_STATE` BH-03 (không ở `DRAFT`) |
+| `POST /orders/{order_id}/confirm` | → `Order` `AWAITING_PAYMENT`, chép giá hiện hành vào `unit_price`, ghi `confirmed_at`; không giữ hàng | `FORBIDDEN` K-01, BH-03; `INVALID_STATE` BH-02 (không ở `DRAFT`); `RULE_VIOLATION` BH-02 (chi nhánh Ngừng hoạt động; sản phẩm Ngừng bán, `details.product_ids`); `INSUFFICIENT_STOCK` BH-02 (`details.lines` như TK-03). Lỗi thì đơn vẫn `DRAFT` |
+| `POST /orders/{order_id}/reopen` | → `Order` `DRAFT`, xóa `unit_price`, `confirmed_at` | `FORBIDDEN` K-01, BH-03; `INVALID_STATE` BH-03 (không ở `AWAITING_PAYMENT`, hoặc có giao dịch `PENDING`) |
+| `POST /orders/{order_id}/cancel` | `OrderCancel` → `Order` `CANCELLED`, ghi người hủy, thời điểm, lý do; không đổi tồn | `FORBIDDEN` K-01, BH-04; `INVALID_STATE` BH-04 (không ở `DRAFT`/`AWAITING_PAYMENT`, hoặc có giao dịch `PENDING`) |
+
+`orders.mark_completed` không tìm thấy đơn `AWAITING_PAYMENT` thì ném `INVALID_STATE`.
+
 ### Nhóm 5 – Báo cáo (vòng 8, 9)
 
 Tham số chung: `from`, `to` (kỳ lọc) và `branch_id` (chỉ HQ được chọn; vai trò khác luôn là chi nhánh mình).

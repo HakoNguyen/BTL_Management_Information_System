@@ -15,6 +15,7 @@ from common.constants import (
     AccountStatus,
     BranchStatus,
     EmployeeStatus,
+    OrderStatus,
     ProductStatus,
     Role,
     SlipStatus,
@@ -265,3 +266,46 @@ class StockSlipReject(BaseModel):
 
 class MinLevelChange(BaseModel):
     min_level: int | None  # âm thì service trả VALIDATION_ERROR TK-05
+
+
+# ---------------------------------------------------------------- Nhóm 3 – Đơn hàng (vòng 5)
+
+
+class OrderItemInput(BaseModel):
+    product_id: NonBlank
+    quantity: int = Field(gt=0)  # BH-01
+
+
+class OrderItem(BaseModel):
+    product_id: str
+    quantity: int
+    unit_price: int | None  # đơn giá chốt; null khi đơn Đang lập (BH-02)
+
+
+class Order(BaseModel):
+    order_id: str
+    branch_id: str
+    customer_id: str
+    created_by: str
+    created_at: datetime
+    status: OrderStatus
+    confirmed_at: datetime | None
+    completed_at: datetime | None
+    cancelled_at: datetime | None
+    cancelled_by: str | None  # null = Hệ thống (BH-05)
+    cancel_reason: str | None
+    total: int | None  # Σ số lượng × đơn giá chốt, dẫn xuất; null khi Đang lập (BH-01)
+    items: list[OrderItem]
+
+
+class OrderCreate(BaseModel):
+    customer_id: NonBlank  # KHLE cho khách lẻ (KH-02)
+    items: list[OrderItemInput] = Field(min_length=1)
+
+
+class OrderItemsChange(BaseModel):
+    items: list[OrderItemInput] = Field(min_length=1)
+
+
+class OrderCancel(BaseModel):
+    reason: NonBlank  # K-03
