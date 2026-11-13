@@ -90,6 +90,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Customers */
+        get: operations["search_customers_customers_get"];
+        put?: never;
+        /** Create Customer */
+        post: operations["create_customer_customers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{customer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Customer */
+        patch: operations["update_customer_customers__customer_id__patch"];
+        trace?: never;
+    };
     "/employees": {
         parameters: {
             query?: never;
@@ -462,6 +497,40 @@ export interface components {
             full_name: string;
             role: components["schemas"]["Role"];
         };
+        /** Customer */
+        Customer: {
+            /** Address */
+            address: string | null;
+            /** Customer Id */
+            customer_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string | null;
+            /**
+             * Registered On
+             * Format: date
+             */
+            registered_on: string;
+        };
+        /** CustomerCreate */
+        CustomerCreate: {
+            /** Address */
+            address?: string | null;
+            /** Full Name */
+            full_name: string;
+            /** Phone */
+            phone: string;
+        };
+        /** CustomerUpdate */
+        CustomerUpdate: {
+            /** Address */
+            address?: string | null;
+            /** Full Name */
+            full_name?: string;
+            /** Phone */
+            phone?: string;
+        };
         /** Employee */
         Employee: {
             account_status: components["schemas"]["AccountStatus"] | null;
@@ -825,6 +894,115 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Branch"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_customers_customers_get: {
+        parameters: {
+            query?: {
+                phone?: string | null;
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_customer_customers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerCreate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"];
+                };
+            };
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_customer_customers__customer_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"];
                 };
             };
             /** @description Validation Error */

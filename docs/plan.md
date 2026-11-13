@@ -4,7 +4,7 @@ File này cho biết dự án đang ở đâu và việc tiếp theo là gì. Đ
 
 ## 1. Tiến độ
 
-**Vòng tiếp theo: 3 (nhóm 2 – khách hàng).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
+**Vòng tiếp theo: 4 (nhóm 4 – tồn kho).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
 dùng dữ liệu và hàm của vòng trước.
 
 | Vòng | Module | Nhánh | Chức năng | Quy tắc | Tình huống KT | Trạng thái |
@@ -12,7 +12,7 @@ dùng dữ liệu và hàm của vòng trước.
 | 0 | khung | `base/project-skeleton` | Repo, tài liệu, 18 bảng, đăng nhập, phân quyền, Docker, CI | K-01 | — | **xong** (13/11/2026) |
 | 1 | `staff` | `staff/employees-branches-accounts` | 6.1, 6.2, 6.3, 6.4 | NV-01 đến NV-04, K-05 | — | **xong** (13/11/2026) |
 | 2 | `products` | `products/catalog-pricing` | 1.1, 1.2, 1.3, 1.4 | SP-01 đến SP-04 | — | **xong** (13/11/2026) |
-| 3 | `customers` | `customers/profiles` | 2.1, 2.2, 2.3 | KH-01 đến KH-03 | — | chưa làm |
+| 3 | `customers` | `customers/profiles` | 2.1, 2.2, 2.3 | KH-01 đến KH-03 | — | **xong** (13/11/2026) |
 | 4 | `inventory` | `inventory/stock-slips` | 4.1, 4.2, 4.3, 4.5 và 5 hàm giao | TK-01 đến TK-05 | KT-12 | chưa làm |
 | 5 | `orders` | `orders/create-confirm-cancel` | 3.1; 3.4 phần hủy đơn | BH-01 đến BH-04, SP-03 | KT-02, KT-03 | chưa làm |
 | 6 | `shifts`, `payments`, `bank-mock` | `payments/shifts-collection-invoice` | 3.5, 3.2, 3.3 | CA-01 đến CA-04, TT-01 đến TT-04 | KT-01, 04, 05, 06, 11, 16 | chưa làm |
@@ -182,6 +182,10 @@ Các điểm đặc tả để trống ở mức triển khai, đã được ng�
 11. Vòng 1 (đặc tả để trống): không tạo, không phân công nhân viên vào chi nhánh Ngừng hoạt động; không phân công,
     không cấp tài khoản cho nhân viên Đã nghỉ; nhân viên chưa từng có tài khoản được chuyển Đã nghỉ; "phiếu chờ xử lý"
     của NV-04 gồm phiếu kho `PENDING` và phiếu trả `PENDING` của chi nhánh.
+12. Vòng 3 (duyệt 13/11/2026): số điện thoại khách chuẩn hóa bằng cách bỏ khoảng trắng, `.`, `-`, `(`, `)` và đổi
+    `+84` thành `0`; hợp lệ khi là `0` và 9 hoặc 10 chữ số (di động 10 số, máy bàn 11 số). 2.1 gặp số đã có thì trả
+    hồ sơ có sẵn với HTTP 200, không sửa họ tên, địa chỉ. 2.3 tra đúng một tiêu chí (số hoặc mã), trả mảng 0–1 phần
+    tử; tra hoặc sửa KHLE trả `RULE_VIOLATION` KH-02 ([api.md](api.md) nhóm 2).
 
 Giả định của người dựng khung, **chưa được người dùng xác nhận**. Vòng nào chạm tới thì nêu lại ở `/plan-task`:
 

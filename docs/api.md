@@ -151,6 +151,26 @@ Sản phẩm mới không có dòng `stock` nào, tức tồn 0 tại mọi chi 
 | 2.3 | `GET /customers` (lọc theo `phone` hoặc `customer_id`) | BH | KH-02 |
 | 2.4 | `GET /customers/{customer_id}/history` (kèm `phone` để xác minh) | BH | KH-04 |
 
+Trường (chốt ở vòng 3). `?` là trường không bắt buộc; ở `PATCH`, trường không gửi thì giữ nguyên.
+
+| Model | Trường |
+| --- | --- |
+| `Customer` (response) | `customer_id`, `full_name`, `phone`, `address` (null được), `registered_on` (ngày) |
+| `CustomerCreate` | `full_name`, `phone`, `address?` |
+| `CustomerUpdate` | `full_name?`, `phone?`, `address?`; `full_name`, `phone` không nhận null. Mã khách không đổi (KH-03) |
+
+Chuẩn hóa số điện thoại (2.1, áp dụng cả khi cập nhật và tra cứu): bỏ khoảng trắng, `.`, `-`, `(`, `)`; đầu `+84`
+đổi thành `0`; kết quả phải là `0` theo sau 9 hoặc 10 chữ số, sai thì `VALIDATION_ERROR` `rule` = KH-01. Số lưu
+và trả về là số đã chuẩn hóa.
+
+| Endpoint | Request → response | Lỗi nghiệp vụ |
+| --- | --- | --- |
+| `POST /customers` | `CustomerCreate` → `201 Customer` (tạo mới, `registered_on` = ngày hiện tại); số đã có hồ sơ thì `200 Customer` là hồ sơ có sẵn, không đổi gì | `VALIDATION_ERROR` KH-01 |
+| `PATCH /customers/{customer_id}` | `CustomerUpdate` → `Customer` | `NOT_FOUND`; `RULE_VIOLATION` KH-02 (KHLE); `DUPLICATE` KH-01 (số thuộc hồ sơ khác); `VALIDATION_ERROR` KH-01 |
+| `GET /customers?phone=…` hoặc `?customer_id=…` | → `Customer[]` (0 hoặc 1 phần tử; rỗng = "Không tìm thấy") | `VALIDATION_ERROR` (không gửi hoặc gửi cả hai tham số); `RULE_VIOLATION` KH-02 (tra KHLE); `VALIDATION_ERROR` KH-01 |
+
+Không có endpoint xóa khách (KH-03). Khách dùng chung toàn chuỗi (G-06) nên không so chi nhánh.
+
 ### Nhóm 4 – Tồn kho (vòng 4; 4.4 ở vòng 8)
 
 | Chức năng | Method, đường dẫn | Vai trò | Quy tắc |
