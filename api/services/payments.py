@@ -1,4 +1,4 @@
-"""Nhóm 3 – Thanh toán và hóa đơn (kho D4, bảng `transactions`, `invoices`): chức năng 3.2, 3.3.
+"""Nhóm 3 – Thanh toán và hóa đơn (kho D4, bảng `transactions`, `invoices`): 3.2, 3.3, hoàn 3.4.
 
 Mọi lệnh ghi vào `transactions`, `invoices` nằm ở file này. Giao dịch thu có kết quả xử lý trong một
 transaction: Thành công thì `inventory.confirm_sale`, `orders.mark_completed`, phát hành hóa đơn;
@@ -20,6 +20,8 @@ from common.constants import (
     ENV_BANK_URL,
     ErrorCode,
     OrderStatus,
+    ReturnStatus,
+    Role,
     ShiftStatus,
     TxnMethod,
     TxnStatus,
@@ -35,7 +37,7 @@ from common.models import (
     Transaction,
     TxnResult,
 )
-from services import inventory, orders
+from services import inventory, orders, returns
 
 log = logging.getLogger("api.payments")
 BANK_TIMEOUT_SECONDS = 5
@@ -56,6 +58,25 @@ def _forbid_other_branch(branch_id: str, user: CurrentUser) -> None:
 
 
 # ---------------------------------------------------------------- 3.2 Khởi tạo thu
+
+
+async def _open_shift(
+    conn: asyncpg.Connection, user: CurrentUser, branch_id: str, rule: str
+) -> str:
+    """TT-01, TH-04: thu ngân có ca Đang mở tại chi nhánh của chứng từ."""
+    # FOR SHARE: đóng ca (FOR UPDATE) phải chờ giao dịch này commit rồi mới kiểm tra (CA-02)
+    shift_id = await conn.fetchval(
+        "SELECT shift_id FROM shifts WHERE cashier_id = $1 AND branch_id = $2 AND status = $3"
+        " FOR SHARE",
+        user.employee_id,
+        branch_id,
+        ShiftStatus.OPEN,
+    )
+    if shift_id is None:
+        raise AppError(
+            ErrorCode.RULE_VIOLATION, "Thu ngân chưa có ca Đang mở tại chi nhánh", rule=rule
+        )
+    return shift_id
 
 
 async def start_payment(
@@ -80,18 +101,7 @@ async def start_payment(
             raise AppError(
                 ErrorCode.INVALID_STATE, "Đơn đang có giao dịch Chờ kết quả", rule="TT-02"
             )
-        # FOR SHARE: đóng ca (FOR UPDATE) phải chờ giao dịch này commit rồi mới kiểm tra (CA-02)
-        shift_id = await conn.fetchval(
-            "SELECT shift_id FROM shifts WHERE cashier_id = $1 AND branch_id = $2 AND status = $3"
-            " FOR SHARE",
-            user.employee_id,
-            order["branch_id"],
-            ShiftStatus.OPEN,
-        )
-        if shift_id is None:
-            raise AppError(
-                ErrorCode.RULE_VIOLATION, "Thu ngân chưa có ca Đang mở tại chi nhánh", rule="TT-01"
-            )
+        shift_id = await _open_shift(conn, user, order["branch_id"], "TT-01")
         lines = await conn.fetch(
             "SELECT product_id, quantity, unit_price FROM order_items WHERE order_id = $1",
             order_id,
@@ -242,6 +252,114 @@ async def bank_callback(
             return Transaction(**txn)
         _require_method(txn, cash=False)
         return await _resolve(conn, txn, body.result, _reference(body))
+
+
+# ---------------------------------------------------------------- 3.4 Hoàn tiền (TH-04)
+
+
+async def _refund_done(conn: asyncpg.Connection, return_id: str) -> bool:
+    return await conn.fetchval(
+        "SELECT EXISTS (SELECT 1 FROM transactions WHERE return_id = $1 AND status = $2)",
+        return_id,
+        TxnStatus.SUCCESS,
+    )
+
+
+async def start_refund(conn: asyncpg.Connection, return_id: str, user: CurrentUser) -> Transaction:
+    """TH-04: giao dịch Hoàn gắn phiếu Đã duyệt, số tiền = giá trị phiếu, phương thức của giao dịch
+    thu Thành công (hoặc tiền mặt khi đã được duyệt), trong ca Đang mở. TT-02: chỉ thử lại khi
+    lần trước đã Thất bại. Hoàn không đổi tồn, đơn."""
+    at = clock.now()
+    async with conn.transaction():
+        slip = await conn.fetchrow(
+            "SELECT r.order_id, r.status, o.branch_id FROM return_slips r"
+            # khóa cả đơn: mỗi đơn tối đa một giao dịch Chờ kết quả, kể cả hoàn của phiếu khác
+            " JOIN orders o USING (order_id) WHERE r.return_id = $1 FOR UPDATE OF r, o",
+            return_id,
+        )
+        if slip is None:
+            raise AppError(ErrorCode.NOT_FOUND, f"Không tìm thấy phiếu trả {return_id}")
+        _forbid_other_branch(slip["branch_id"], user)
+        if slip["status"] != ReturnStatus.APPROVED:
+            raise AppError(
+                ErrorCode.INVALID_STATE, "Chỉ hoàn tiền cho phiếu trả Đã duyệt", rule="TH-04"
+            )
+        if await _refund_done(conn, return_id):
+            raise AppError(ErrorCode.INVALID_STATE, "Phiếu trả đã hoàn xong", rule="TH-04")
+        if await has_pending_txn(conn, slip["order_id"]):
+            raise AppError(
+                ErrorCode.INVALID_STATE, "Đơn đang có giao dịch Chờ kết quả", rule="TT-02"
+            )
+        shift_id = await _open_shift(conn, user, slip["branch_id"], "TH-04")
+        approval = await conn.fetchrow(
+            "SELECT cash_refund_approved_by, cash_refund_reason FROM transactions"
+            " WHERE return_id = $1 AND cash_refund_approved_by IS NOT NULL"
+            " ORDER BY txn_id LIMIT 1",
+            return_id,
+        )
+        method = (
+            TxnMethod.CASH
+            if approval
+            else await conn.fetchval(
+                "SELECT method FROM transactions WHERE order_id = $1 AND type = $2 AND status = $3",
+                slip["order_id"],
+                TxnType.COLLECT,
+                TxnStatus.SUCCESS,
+            )
+        )
+        row = await conn.fetchrow(
+            "INSERT INTO transactions (order_id, return_id, shift_id, type, method, amount,"
+            " created_at, cash_refund_approved_by, cash_refund_reason)"
+            " VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
+            slip["order_id"],
+            return_id,
+            shift_id,
+            TxnType.REFUND,
+            method,
+            await returns.slip_value(conn, return_id),
+            at,
+            approval["cash_refund_approved_by"] if approval else None,
+            approval["cash_refund_reason"] if approval else None,
+        )
+    txn = Transaction(**row)
+    if method != TxnMethod.CASH:
+        await _send_to_bank(txn)
+    return txn
+
+
+async def approve_cash_refund(
+    conn: asyncpg.Connection, txn_id: str, reason: str, user: CurrentUser
+) -> Transaction:
+    """TH-04: sau ít nhất một lần hoàn điện tử Thất bại, QL (hoặc HQ duyệt thay) duyệt hoàn bằng
+    tiền mặt; người duyệt và lý do lưu trên giao dịch Thất bại, không đổi trạng thái, số tiền."""
+    async with conn.transaction():
+        txn = await _locked_txn(conn, txn_id)
+        if user.role != Role.HQ:
+            _forbid_other_branch(txn["branch_id"], user)
+        if not (
+            txn["type"] == TxnType.REFUND
+            and txn["status"] == TxnStatus.FAILED
+            and txn["method"] != TxnMethod.CASH
+        ):
+            raise AppError(
+                ErrorCode.RULE_VIOLATION,
+                "Chỉ duyệt hoàn tiền mặt sau một lần hoàn điện tử Thất bại",
+                rule="TH-04",
+            )
+        if txn["cash_refund_approved_by"] is not None or await _refund_done(conn, txn["return_id"]):
+            raise AppError(
+                ErrorCode.INVALID_STATE,
+                "Đã duyệt hoàn tiền mặt hoặc phiếu đã hoàn xong",
+                rule="TH-04",
+            )
+        row = await conn.fetchrow(
+            "UPDATE transactions SET cash_refund_approved_by = $2, cash_refund_reason = $3"
+            " WHERE txn_id = $1 AND cash_refund_approved_by IS NULL RETURNING *",
+            txn_id,
+            user.employee_id,
+            reason,
+        )
+    return Transaction(**row)
 
 
 # ---------------------------------------------------------------- 3.3 Hóa đơn (TT-04)

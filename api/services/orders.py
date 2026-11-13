@@ -271,3 +271,32 @@ async def mark_completed(conn: asyncpg.Connection, order_id: str, at: datetime) 
         OrderStatus.AWAITING_PAYMENT,
     )
     _check_moved(result, order_id)
+
+
+# ---------------------------------------------------------------- Hàm giao cho 3.4 trả hàng
+
+
+async def mark_returned(conn: asyncpg.Connection, order_id: str, fully: bool) -> None:
+    """3.4 phiếu trả Đã duyệt: đơn Đã trả toàn bộ nếu mọi dòng đã trả hết, ngược lại Đã trả một
+    phần; giữ thời điểm hoàn tất (TH-05)."""
+    current = await conn.fetchval("SELECT status FROM orders WHERE order_id = $1", order_id)
+    if current not in (OrderStatus.COMPLETED, OrderStatus.PARTIALLY_RETURNED):
+        raise AppError(ErrorCode.INVALID_STATE, f"Đơn {order_id} không nhận trả", rule="TH-05")
+    result = await conn.execute(
+        "UPDATE orders SET status = $2 WHERE order_id = $1 AND status = $3",
+        order_id,
+        OrderStatus.FULLY_RETURNED if fully else OrderStatus.PARTIALLY_RETURNED,
+        current,
+    )
+    _check_moved(result, order_id)
+
+
+async def completed_orders_of_customer(conn: asyncpg.Connection, customer_id: str) -> list[Order]:
+    """2.4: các đơn từng Hoàn tất của khách (kể cả đã trả), mới nhất trước."""
+    rows = await conn.fetch(
+        f"{_SELECT} WHERE o.customer_id = $1 AND o.status = ANY($2::text[])"
+        " ORDER BY o.completed_at DESC, o.order_id DESC",
+        customer_id,
+        [OrderStatus.COMPLETED, OrderStatus.PARTIALLY_RETURNED, OrderStatus.FULLY_RETURNED],
+    )
+    return await _load(conn, rows)

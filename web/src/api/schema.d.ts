@@ -142,6 +142,23 @@ export interface paths {
         patch: operations["update_customer_customers__customer_id__patch"];
         trace?: never;
     };
+    "/customers/{customer_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get History */
+        get: operations["get_history_customers__customer_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/employees": {
         parameters: {
             query?: never;
@@ -573,6 +590,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Returns */
+        get: operations["list_returns_returns_get"];
+        put?: never;
+        /** Create Return */
+        post: operations["create_return_returns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/returns/{return_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Return */
+        get: operations["get_return_returns__return_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/returns/{return_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Return */
+        post: operations["approve_return_returns__return_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/returns/{return_id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Refund */
+        post: operations["start_refund_returns__return_id__refunds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/returns/{return_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Return */
+        post: operations["reject_return_returns__return_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/shifts": {
         parameters: {
             query?: never;
@@ -796,6 +899,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/transactions/{txn_id}/approve-cash-refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Cash Refund */
+        post: operations["approve_cash_refund_transactions__txn_id__approve_cash_refund_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/transactions/{txn_id}/confirm-cash": {
         parameters: {
             query?: never;
@@ -932,6 +1052,11 @@ export interface components {
              */
             result: "SUCCESS" | "FAILED";
         };
+        /** CashRefundApproval */
+        CashRefundApproval: {
+            /** Reason */
+            reason: string;
+        };
         /**
          * CurrentUser
          * @description Thông tin phiên đăng nhập: dùng để kiểm tra quyền theo vai trò và chi nhánh (K-01).
@@ -969,6 +1094,17 @@ export interface components {
             full_name: string;
             /** Phone */
             phone: string;
+        };
+        /**
+         * CustomerHistory
+         * @description 2.4: lịch sử mua và trả của khách sau khi xác minh số điện thoại (KH-04).
+         */
+        CustomerHistory: {
+            customer: components["schemas"]["Customer"];
+            /** Orders */
+            orders: components["schemas"]["Order"][];
+            /** Returns */
+            returns: components["schemas"]["ReturnSlip"][];
         };
         /** CustomerUpdate */
         CustomerUpdate: {
@@ -1292,6 +1428,83 @@ export interface components {
              */
             result: "SUCCESS" | "FAILED";
         };
+        /**
+         * RefundStatus
+         * @description Tình trạng hoàn tiền của phiếu trả: dẫn xuất từ giao dịch Hoàn, không lưu (db.md mục 6).
+         * @enum {string}
+         */
+        RefundStatus: "NOT_REFUNDED" | "PENDING" | "REFUNDED";
+        /** ReturnCreate */
+        ReturnCreate: {
+            /** Items */
+            items: components["schemas"]["ReturnItemInput"][];
+            /** Order Id */
+            order_id: string;
+            /** Reason */
+            reason: string;
+        };
+        /** ReturnDecision */
+        ReturnDecision: {
+            /** Decision Note */
+            decision_note?: string | null;
+        };
+        /** ReturnItem */
+        ReturnItem: {
+            /** Amount */
+            amount: number;
+            /** Defective Qty */
+            defective_qty: number;
+            /** Good Qty */
+            good_qty: number;
+            /** Product Id */
+            product_id: string;
+            /** Unit Price */
+            unit_price: number;
+        };
+        /** ReturnItemInput */
+        ReturnItemInput: {
+            /** Defective Qty */
+            defective_qty: number;
+            /** Good Qty */
+            good_qty: number;
+            /** Product Id */
+            product_id: string;
+        };
+        /** ReturnSlip */
+        ReturnSlip: {
+            /** Branch Id */
+            branch_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By */
+            decided_by: string | null;
+            /** Decision Note */
+            decision_note: string | null;
+            /** Items */
+            items: components["schemas"]["ReturnItem"][];
+            /** Order Id */
+            order_id: string;
+            /** Reason */
+            reason: string;
+            refund_status: components["schemas"]["RefundStatus"] | null;
+            /** Return Id */
+            return_id: string;
+            status: components["schemas"]["ReturnStatus"];
+            /** Value */
+            value: number;
+        };
+        /**
+         * ReturnStatus
+         * @enum {string}
+         */
+        ReturnStatus: "PENDING" | "APPROVED" | "REJECTED";
         /**
          * Role
          * @enum {string}
@@ -1873,6 +2086,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Customer"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_history_customers__customer_id__history_get: {
+        parameters: {
+            query: {
+                phone: string;
+            };
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerHistory"];
                 };
             };
             /** @description Validation Error */
@@ -2855,6 +3101,203 @@ export interface operations {
             };
         };
     };
+    list_returns_returns_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ReturnStatus"] | null;
+                refund_status?: components["schemas"]["RefundStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnSlip"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_return_returns_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReturnCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_return_returns__return_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                return_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_return_returns__return_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                return_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReturnDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_refund_returns__return_id__refunds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                return_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_return_returns__return_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                return_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReturnDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_shifts_shifts_get: {
         parameters: {
             query?: {
@@ -3307,6 +3750,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StockLevel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_cash_refund_transactions__txn_id__approve_cash_refund_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                txn_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashRefundApproval"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
                 };
             };
             /** @description Validation Error */

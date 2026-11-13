@@ -171,6 +171,16 @@ và trả về là số đã chuẩn hóa.
 
 Không có endpoint xóa khách (KH-03). Khách dùng chung toàn chuỗi (G-06) nên không so chi nhánh.
 
+Trường 2.4 (chốt ở vòng 7). Lịch sử lấy ở mọi chi nhánh vì khách dùng chung toàn chuỗi.
+
+| Model | Trường |
+| --- | --- |
+| `CustomerHistory` (response) | `customer` (`Customer`), `orders` (`Order[]`: các đơn từng Hoàn tất – `COMPLETED`, `PARTIALLY_RETURNED`, `FULLY_RETURNED` – mới nhất trước theo `completed_at`), `returns` (`ReturnSlip[]` của các đơn đó, mọi trạng thái, mới nhất trước theo `created_at`) |
+
+| Endpoint | Request → response | Lỗi nghiệp vụ |
+| --- | --- | --- |
+| `GET /customers/{customer_id}/history?phone=…` | → `CustomerHistory` | `NOT_FOUND`; `RULE_VIOLATION` KH-02 (KHLE); `VALIDATION_ERROR` KH-01 (số sai định dạng); `RULE_VIOLATION` KH-04 (số đã chuẩn hóa không khớp hồ sơ) |
+
 ### Nhóm 4 – Tồn kho (vòng 4; 4.4 ở vòng 8)
 
 | Chức năng | Method, đường dẫn | Vai trò | Quy tắc |
@@ -300,6 +310,30 @@ Giao dịch thu có kết quả (qua `confirm-cash`, `reconcile` hoặc `bank/ca
 `SUCCESS` → `inventory.confirm_sale`, `orders.mark_completed`, phát hành hóa đơn `print_count` = 0; `FAILED` →
 `inventory.release_hold`, đơn vẫn `AWAITING_PAYMENT`.
 
+Trường phiếu trả, hoàn tiền (chốt ở vòng 7). Phiếu trả thuộc chi nhánh của đơn gốc; QL, NVBH, TN thao tác phiếu của
+chi nhánh khác trả `FORBIDDEN` `rule` = K-01; HQ xem và quyết định được mọi chi nhánh. Duyệt thay (K-02, quyết định
+15 ở [plan.md](plan.md) mục 7): HQ duyệt, từ chối phiếu trả và duyệt hoàn tiền mặt bất cứ lúc nào, luôn kèm lý do.
+
+| Model | Trường |
+| --- | --- |
+| `ReturnItemInput` | `product_id`, `good_qty`, `defective_qty` (nguyên ≥ 0, tổng > 0, TH-02) |
+| `ReturnCreate` | `order_id`, `reason` (bắt buộc, TH-02), `items` (≥ 1 dòng, mỗi sản phẩm một dòng) |
+| `ReturnItem` (response) | `product_id`, `good_qty`, `defective_qty`, `unit_price` (đơn giá chốt trên đơn gốc), `amount` (= (tốt + lỗi) × đơn giá chốt) |
+| `ReturnSlip` (response) | `return_id`, `order_id`, `branch_id` (của đơn gốc), `created_by`, `created_at`, `reason`, `status` (`ReturnStatus`), `decided_by` (null = Hệ thống tự từ chối), `decided_at`, `decision_note`; dẫn xuất: `value` (giá trị phiếu, TH-04), `refund_status` (`RefundStatus`; null khi phiếu chưa `APPROVED`), `items` (`ReturnItem[]`) |
+| `RefundStatus` (enum, dẫn xuất, [db.md](db.md) mục 6) | `NOT_REFUNDED` = Chưa hoàn; `PENDING` = Đang chờ kết quả; `REFUNDED` = Đã hoàn |
+| `ReturnDecision` | `decision_note?`: QL duyệt thì không bắt buộc; HQ duyệt bắt buộc (K-02); từ chối bắt buộc (K-03) |
+| `CashRefundApproval` | `reason` (bắt buộc, TH-04) |
+
+| Endpoint | Request → response | Lỗi nghiệp vụ |
+| --- | --- | --- |
+| `POST /returns` | `ReturnCreate` → `201 ReturnSlip` `PENDING`; hàng vẫn do khách giữ | `NOT_FOUND` (đơn); `FORBIDDEN` K-01; `INVALID_STATE` TH-01 (đơn không ở `COMPLETED`/`PARTIALLY_RETURNED`); `RULE_VIOLATION` TH-01 (chi nhánh Ngừng hoạt động; quá `completed_at` + 7 ngày); `VALIDATION_ERROR` TH-02 (trùng sản phẩm; dòng có tổng = 0); `RULE_VIOLATION` TH-02 (sản phẩm không có trong đơn, `details.product_ids`; vượt lượng còn được trả, `details.lines` gồm `product_id`, `requested`, `remaining`) |
+| `GET /returns?status=…&refund_status=…` | → `ReturnSlip[]` mới nhất trước: HQ mọi chi nhánh, vai trò khác chi nhánh mình. Phiếu Đã duyệt chưa hoàn xong (TH-05): `status=APPROVED` và `refund_status=NOT_REFUNDED` | |
+| `GET /returns/{return_id}` | → `ReturnSlip` | `NOT_FOUND`; `FORBIDDEN` K-01 |
+| `POST /returns/{return_id}/approve` | `ReturnDecision` → `ReturnSlip` `APPROVED`, ghi `decided_by`, `decided_at`, `decision_note`. Cùng transaction: kiểm tra lại TH-02, `inventory.receive_return` cho số lượng tốt (không có hàng tốt thì không lập phiếu kho), `orders.mark_returned` (TH-05) | `NOT_FOUND`; `FORBIDDEN` K-01, K-02 (người duyệt là người lập); `VALIDATION_ERROR` K-02 (HQ thiếu lý do); `INVALID_STATE` TH-03 (không ở `PENDING`); `RULE_VIOLATION` TH-02 |
+| `POST /returns/{return_id}/reject` | `ReturnDecision` → `ReturnSlip` `REJECTED`; không đổi tồn, đơn, tiền | như `approve` (trừ TH-02); `VALIDATION_ERROR` K-03 (thiếu lý do) |
+| `POST /returns/{return_id}/refunds` | → `201 Transaction` `REFUND` `PENDING`, số tiền = giá trị phiếu, gắn ca `OPEN` của thu ngân. Phương thức: `CASH` nếu một giao dịch hoàn Thất bại của phiếu đã được duyệt hoàn tiền mặt (chép `cash_refund_approved_by`, `cash_refund_reason` sang giao dịch mới); ngược lại bằng phương thức của giao dịch thu Thành công. Điện tử thì gọi cổng sau khi commit. Kết quả cập nhật qua `confirm-cash`, `reconcile`, `bank/callback` như giao dịch thu, nhưng không đổi tồn, đơn | `NOT_FOUND`; `FORBIDDEN` K-01; `INVALID_STATE` TH-04 (phiếu không ở `APPROVED`, hoặc đã có giao dịch hoàn Thành công), TT-02 (đơn đang có giao dịch `PENDING`); `RULE_VIOLATION` TH-04 (thu ngân không có ca `OPEN` tại chi nhánh của phiếu) |
+| `POST /transactions/{txn_id}/approve-cash-refund` | `CashRefundApproval` → `Transaction` (giao dịch hoàn điện tử `FAILED` được ghi `cash_refund_approved_by`, `cash_refund_reason`; trạng thái, số tiền không đổi) | `NOT_FOUND`; `FORBIDDEN` K-01; `RULE_VIOLATION` TH-04 (không phải giao dịch hoàn điện tử `FAILED`); `INVALID_STATE` TH-04 (đã được duyệt, hoặc phiếu đã hoàn xong) |
+
 ### Nhóm 5 – Báo cáo (vòng 8, 9)
 
 Tham số chung: `from`, `to` (kỳ lọc) và `branch_id` (chỉ HQ được chọn; vai trò khác luôn là chi nhánh mình).
@@ -328,6 +362,7 @@ Mỗi kho chỉ do nhóm sở hữu ghi (đặc tả 6.1). Module khác muốn l
 | `inventory.receive_return(conn, return_id, branch_id, lines, at)` | vòng 4 | 3.4 khi phiếu trả Đã duyệt | Tạo phiếu `IN_RETURN` `POSTED` cho số lượng tốt, đúng một lần mỗi phiếu trả (TH-05) |
 | `orders.mark_completed(conn, order_id, at)` | vòng 5 | 3.2 khi thu Thành công | Đơn `AWAITING_PAYMENT` sang `COMPLETED`, ghi `completed_at` |
 | `payments.has_pending_txn(conn, order_id)` | vòng 6 | 3.1 mở lại, 3.4 hủy đơn | Đơn có giao dịch `PENDING` hay không (BH-03, BH-04, BH-05) |
+| `orders.mark_returned(conn, order_id, fully)` | vòng 7 | 3.4 khi phiếu trả Đã duyệt | Đơn `COMPLETED`/`PARTIALLY_RETURNED` sang `FULLY_RETURNED` nếu `fully`, ngược lại `PARTIALLY_RETURNED`; giữ `completed_at` (TH-05) |
 
 Vòng nào cần một hàm mà chủ của nó chưa viết (ví dụ vòng 5 cần `payments.has_pending_txn`) thì vòng đó tạo hàm
 với đúng chữ ký trên, đặt đúng file của chủ, kèm test.

@@ -1,4 +1,4 @@
-"""Nhóm 3 – Thu tiền và hóa đơn (docs/api.md mục 4, 6): chức năng 3.2, 3.3."""
+"""Nhóm 3 – Thu tiền, hóa đơn, hoàn tiền (docs/api.md mục 4, 6): 3.2, 3.3 và hoàn tiền của 3.4."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from common.constants import Role
 from common.models import (
     BankCallback,
     CashConfirm,
+    CashRefundApproval,
     CurrentUser,
     Invoice,
     PaymentCreate,
@@ -21,6 +22,8 @@ from common.models import (
 
 router = APIRouter(tags=["payments"])
 Cashier = Annotated[CurrentUser, Depends(require_role(Role.CASHIER))]
+# QL duyệt; HQ duyệt thay (K-02, docs/plan.md quyết định 15)
+Approver = Annotated[CurrentUser, Depends(require_role(Role.MANAGER, Role.HQ))]
 
 
 @router.post("/orders/{order_id}/payments", status_code=201)
@@ -56,3 +59,15 @@ async def get_invoice(order_id: str, user: Cashier, conn: Conn) -> Invoice:
 @router.post("/invoices/{invoice_no}/print")
 async def print_invoice(invoice_no: str, user: Cashier, conn: Conn) -> Invoice:
     return await payments.print_invoice(conn, invoice_no, user)
+
+
+@router.post("/returns/{return_id}/refunds", status_code=201)
+async def start_refund(return_id: str, user: Cashier, conn: Conn) -> Transaction:
+    return await payments.start_refund(conn, return_id, user)
+
+
+@router.post("/transactions/{txn_id}/approve-cash-refund")
+async def approve_cash_refund(
+    txn_id: str, body: CashRefundApproval, user: Approver, conn: Conn
+) -> Transaction:
+    return await payments.approve_cash_refund(conn, txn_id, body.reason, user)
