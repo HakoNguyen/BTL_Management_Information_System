@@ -11,7 +11,14 @@ from datetime import datetime
 import asyncpg
 
 from common import clock
-from common.constants import BranchStatus, ErrorCode, OrderStatus, ProductStatus, Role
+from common.constants import (
+    OVERDUE_CANCEL_REASON,
+    BranchStatus,
+    ErrorCode,
+    OrderStatus,
+    ProductStatus,
+    Role,
+)
 from common.errors import AppError
 from common.models import CurrentUser, Order, OrderCreate, OrderItem, OrderItemInput
 from services import inventory, payments
@@ -256,6 +263,38 @@ async def cancel_order(
         )
         _check_moved(result, order_id)
     return await get_order(conn, order_id, user)
+
+
+async def cancel_overdue(
+    conn: asyncpg.Connection, branch_id: str, closing_at: datetime, at: datetime
+) -> list[str]:
+    """BH-05: đến giờ đóng cửa, Hệ thống (người hủy NULL) hủy đơn Đang lập/Chờ thanh toán lập
+    trước mốc, lý do Quá hạn; đơn có giao dịch Chờ kết quả giữ nguyên để tra soát."""
+    cancelled: list[str] = []
+    async with conn.transaction():
+        # khóa đơn như 3.2 để không lọt giao dịch vừa tạo giữa lúc kiểm tra và lúc hủy
+        rows = await conn.fetch(
+            "SELECT order_id, status FROM orders WHERE branch_id = $1"
+            " AND status = ANY($2::text[]) AND created_at <= $3 ORDER BY order_id FOR UPDATE",
+            branch_id,
+            [OrderStatus.DRAFT, OrderStatus.AWAITING_PAYMENT],
+            closing_at,
+        )
+        for row in rows:
+            if await payments.has_pending_txn(conn, row["order_id"]):
+                continue
+            result = await conn.execute(
+                "UPDATE orders SET status = $2, cancelled_at = $3, cancelled_by = NULL,"
+                " cancel_reason = $4 WHERE order_id = $1 AND status = $5",
+                row["order_id"],
+                OrderStatus.CANCELLED,
+                at,
+                OVERDUE_CANCEL_REASON,
+                row["status"],
+            )
+            _check_moved(result, row["order_id"])
+            cancelled.append(row["order_id"])
+    return cancelled
 
 
 # ---------------------------------------------------------------- Hàm giao cho 3.2

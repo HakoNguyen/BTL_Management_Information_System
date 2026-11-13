@@ -1,6 +1,7 @@
-"""Nhóm 4 – Tồn kho (kho D5): chức năng 4.1, 4.2, 4.3, 4.5 và năm hàm giao cho nhóm 3.
+"""Nhóm 4 – Tồn kho (kho D5): chức năng 4.1 đến 4.5 và năm hàm giao cho nhóm 3.
 
-Mọi lệnh ghi vào `stock`, `stock_slips`, `stock_slip_items` nằm ở file này (TK-01).
+Mọi lệnh ghi vào `stock`, `stock_slips`, `stock_slip_items`, `replenishment_requests`,
+`replenishment_request_items` nằm ở file này (TK-01).
 Trước khi tính tồn khả dụng để giữ hàng: khóa dòng `stock` bằng `SELECT … FOR UPDATE` theo
 `product_id` tăng dần, để hai giao dịch tranh cùng hàng không cùng qua được (TK-03, KT-06).
 Hàm giao (`docs/api.md` mục 5) chạy trong transaction của bên gọi; hàm cho router tự mở transaction.
@@ -13,11 +14,13 @@ from datetime import datetime
 import asyncpg
 
 from common import clock
-from common.constants import BranchStatus, ErrorCode, SlipStatus, SlipType
+from common.constants import BranchStatus, ErrorCode, ProductStatus, SlipStatus, SlipType
 from common.errors import AppError
 from common.models import (
     CurrentUser,
     InboundSlipCreate,
+    ReplenishmentCreate,
+    ReplenishmentRequest,
     StockLevel,
     StockSlip,
     StockSlipCreate,
@@ -381,6 +384,71 @@ async def set_min_level(
         f"{_LEVEL} WHERE p.product_id = $3", user.branch_id, _out_types(), product_id
     )
     return StockLevel(**row)
+
+
+# ---------------------------------------------------------------- 4.4 Yêu cầu bổ sung
+
+
+async def _load_requests(
+    conn: asyncpg.Connection, rows: list[asyncpg.Record]
+) -> list[ReplenishmentRequest]:
+    items = await conn.fetch(
+        "SELECT request_id, product_id, quantity FROM replenishment_request_items"
+        " WHERE request_id = ANY($1::text[]) ORDER BY product_id",
+        [row["request_id"] for row in rows],
+    )
+    by_request: dict[str, list[StockSlipItem]] = {}
+    for item in items:
+        by_request.setdefault(item["request_id"], []).append(
+            StockSlipItem(product_id=item["product_id"], quantity=item["quantity"])
+        )
+    return [ReplenishmentRequest(**row, items=by_request[row["request_id"]]) for row in rows]
+
+
+async def list_replenishments(
+    conn: asyncpg.Connection, user: CurrentUser
+) -> list[ReplenishmentRequest]:
+    rows = await conn.fetch(
+        "SELECT * FROM replenishment_requests WHERE branch_id = $1"
+        " ORDER BY created_at DESC, request_id DESC",
+        user.branch_id,
+    )
+    return await _load_requests(conn, rows)
+
+
+async def create_replenishment(
+    conn: asyncpg.Connection, body: ReplenishmentCreate, user: CurrentUser
+) -> ReplenishmentRequest:
+    """TK-06: sản phẩm Đang bán, số lượng > 0, mỗi sản phẩm một dòng; lưu như đã gửi,
+    không đổi tồn."""
+    lines = _validate_lines(body.items)
+    async with conn.transaction():
+        await _ensure_products(conn, lines)
+        stopped = await conn.fetch(
+            "SELECT product_id FROM products WHERE product_id = ANY($1::text[]) AND status <> $2"
+            " ORDER BY product_id",
+            [product_id for product_id, _ in lines],
+            ProductStatus.ON_SALE,
+        )
+        if stopped:
+            names = ", ".join(row["product_id"] for row in stopped)
+            raise AppError(ErrorCode.RULE_VIOLATION, f"Sản phẩm {names} đã ngừng bán", rule="TK-06")
+        row = await conn.fetchrow(
+            "INSERT INTO replenishment_requests"
+            " (branch_id, created_by, created_at, type, recipient)"
+            " VALUES ($1, $2, $3, $4, $5) RETURNING *",
+            user.branch_id,
+            user.employee_id,
+            clock.now(),
+            body.type,
+            body.recipient,
+        )
+        await conn.executemany(
+            "INSERT INTO replenishment_request_items (request_id, product_id, quantity)"
+            " VALUES ($1, $2, $3)",
+            [(row["request_id"], product_id, qty) for product_id, qty in sorted(lines)],
+        )
+    return (await _load_requests(conn, [row]))[0]
 
 
 # ---------------------------------------------------------------- Hàm giao cho nhóm 3

@@ -18,6 +18,7 @@ from common.constants import (
     OrderStatus,
     ProductStatus,
     RefundStatus,
+    ReplenishType,
     ReturnStatus,
     Role,
     ShiftStatus,
@@ -274,6 +275,22 @@ class MinLevelChange(BaseModel):
     min_level: int | None  # âm thì service trả VALIDATION_ERROR TK-05
 
 
+class ReplenishmentCreate(BaseModel):
+    type: ReplenishType
+    recipient: NonBlank  # kho tổng hoặc tên NCC
+    items: list[StockSlipItem] = Field(min_length=1)  # TK-06
+
+
+class ReplenishmentRequest(BaseModel):
+    request_id: str
+    branch_id: str
+    created_by: str
+    created_at: datetime
+    type: ReplenishType
+    recipient: str
+    items: list[StockSlipItem]
+
+
 # ---------------------------------------------------------------- Nhóm 3 – Đơn hàng (vòng 5)
 
 
@@ -477,3 +494,19 @@ class CustomerHistory(BaseModel):
     customer: Customer
     orders: list[Order]
     returns: list[ReturnSlip]
+
+
+class LowStockLine(BaseModel):
+    product_id: str
+    name: str
+    quantity: int
+    min_level: int | None  # null = Chưa thiết lập
+
+
+class LowStockReport(BaseModel):
+    """5.4: tính lúc gọi, không lưu (TK-05)."""
+
+    branch_id: str
+    generated_at: datetime
+    below_min: list[LowStockLine]
+    not_set: list[LowStockLine]

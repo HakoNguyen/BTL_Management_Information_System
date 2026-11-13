@@ -7,12 +7,13 @@ Giao dịch hoàn tiền thuộc D4, nằm ở `payments.py`.
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import asyncpg
 
 from common import clock
 from common.constants import (
+    OVERDUE_REJECT_REASON,
     RETURN_WINDOW_DAYS,
     BranchStatus,
     ErrorCode,
@@ -356,3 +357,23 @@ async def reject_return(
         await _pending_for_decision(conn, return_id, user)
         await _decide(conn, return_id, ReturnStatus.REJECTED, note, user)
     return await get_return(conn, return_id, user)
+
+
+async def reject_overdue(
+    conn: asyncpg.Connection, branch_id: str, closing_at: datetime, at: datetime
+) -> list[str]:
+    """TH-03: đến giờ đóng cửa, phiếu Chờ duyệt lập trước mốc tự Từ chối, lý do Quá hạn duyệt,
+    người quyết định NULL (Hệ thống). Không đổi tồn, đơn, tiền."""
+    rows = await conn.fetch(
+        "UPDATE return_slips r SET status = $3, decided_by = NULL, decided_at = $4,"
+        " decision_note = $5 FROM orders o"
+        " WHERE o.order_id = r.order_id AND o.branch_id = $1 AND r.status = $6"
+        " AND r.created_at <= $2 RETURNING r.return_id",
+        branch_id,
+        closing_at,
+        ReturnStatus.REJECTED,
+        at,
+        OVERDUE_REJECT_REASON,
+        ReturnStatus.PENDING,
+    )
+    return sorted(row["return_id"] for row in rows)
