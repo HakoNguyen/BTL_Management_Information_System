@@ -4,7 +4,7 @@ File này cho biết dự án đang ở đâu và việc tiếp theo là gì. Đ
 
 ## 1. Tiến độ
 
-**Vòng tiếp theo: 6 (nhóm 3 – ca, thu tiền, hóa đơn).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
+**Vòng tiếp theo: 7 (nhóm 3 – trả hàng, hoàn tiền; 2.4).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
 dùng dữ liệu và hàm của vòng trước.
 
 | Vòng | Module | Nhánh | Chức năng | Quy tắc | Tình huống KT | Trạng thái |
@@ -15,7 +15,7 @@ dùng dữ liệu và hàm của vòng trước.
 | 3 | `customers` | `customers/profiles` | 2.1, 2.2, 2.3 | KH-01 đến KH-03 | — | **xong** (13/11/2026) |
 | 4 | `inventory` | `inventory/stock-slips` | 4.1, 4.2, 4.3, 4.5 và 5 hàm giao | TK-01 đến TK-05 | KT-12 | **xong** (13/11/2026) |
 | 5 | `orders` | `orders/create-confirm-cancel` | 3.1; 3.4 phần hủy đơn | BH-01 đến BH-04, SP-03 | KT-02, KT-03 | **xong** (13/11/2026) |
-| 6 | `shifts`, `payments`, `bank-mock` | `payments/shifts-collection-invoice` | 3.5, 3.2, 3.3 | CA-01 đến CA-04, TT-01 đến TT-04 | KT-01, 04, 05, 06, 11, 16 | chưa làm |
+| 6 | `shifts`, `payments`, `bank-mock` | `payments/shifts-collection-invoice` | 3.5, 3.2, 3.3 | CA-01 đến CA-04, TT-01 đến TT-04 | KT-01, 04, 05, 06, 11, 16 | **xong** (13/11/2026) |
 | 7 | `returns`, `customers` | `returns/return-refund` | 3.4 phần phiếu trả và hoàn tiền; 2.4 | TH-01 đến TH-05, KH-04 | KT-08, KT-09 | chưa làm |
 | 8 | `workers/closing`, `inventory`, `reports` | `closing/end-of-day-replenishment` | Sự kiện giờ đóng cửa; 4.4; 5.4 | BH-05, TH-03, TK-06 | KT-07, KT-14 | chưa làm |
 | 9 | `reports` | `reports/revenue-stock-staff` | 5.1, 5.2, 5.3, 5.5 | DT-01 đến DT-05 | KT-10, 13, 15 | chưa làm |
@@ -191,11 +191,16 @@ Các điểm đặc tả để trống ở mức triển khai, đã được ng�
     do; giao diện gợi ý sẵn các lý do thường gặp. Nhập hàng từ kho tổng/NCC cho sản phẩm Ngừng bán được phép. Lý do
     QL từ chối phiếu kho (K-03) lưu ở cột mới `stock_slips.decision_reason` (migration 003); `approved_by` lưu người
     quyết định cả khi duyệt lẫn từ chối.
+14. Vòng 6 (duyệt 13/11/2026): ca thu ngân tự đóng do QL chi nhánh xác nhận chốt; ca QL đóng thay (CA-04) chỉ trụ sở
+    xác nhận, nên trụ sở không xác nhận thay ca thường và không cần cột lý do mới. Người làm chứng khi đóng ca thay là
+    nhân viên Đang làm cùng chi nhánh, khác QL đóng thay và khác thu ngân của ca. Giao dịch thu tiền mặt: thu ngân xác
+    nhận `SUCCESS` (đã nhận đủ) hoặc `FAILED` (khách không đưa tiền, nhả hàng giữ). Hóa đơn phát hành với
+    `print_count` = 0; mỗi lần in (kể cả lần đầu) cộng 1.
 
 Giả định của người dựng khung, **chưa được người dùng xác nhận**. Vòng nào chạm tới thì nêu lại ở `/plan-task`:
 
 - Trụ sở duyệt thay (K-02): hệ thống không tự biết QL vắng mặt, nên cho phép Trụ sở duyệt khi có lý do bắt buộc.
-- Người làm chứng khi đóng ca thay (CA-04): nhân viên Đang làm cùng chi nhánh, khác QL đóng thay và khác thu ngân của ca.
+  (Ca thu ngân đã chốt ở quyết định 14; còn mở cho phiếu trả và hoàn tiền mặt ở vòng 7.)
 
 ## 8. Việc hoãn có chủ đích
 

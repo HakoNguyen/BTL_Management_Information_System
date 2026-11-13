@@ -34,6 +34,8 @@ services:
       SECRET_KEY: ${SECRET_KEY:?Thieu SECRET_KEY trong .env}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Thieu ADMIN_PASSWORD trong .env}
+      BANK_URL: http://bank-mock:8001
+      BANK_KEY: ${BANK_KEY:?Thieu BANK_KEY trong .env}
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
@@ -44,6 +46,20 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
+
+  # Cổng thanh toán giả lập (docs/api.md mục 6); đổi chế độ: PUT http://localhost:8001/mode
+  bank-mock:
+    build:
+      context: ..
+      dockerfile: infra/bank-mock/Dockerfile
+    container_name: qlbh-bank-mock
+    environment:
+      BANK_KEY: ${BANK_KEY:?Thieu BANK_KEY trong .env}
+      BANK_CALLBACK_URL: http://api:8000/bank/callback
+      BANK_MOCK_MODE: ${BANK_MOCK_MODE:-SUCCESS}
+    ports:
+      - "${BANK_PORT:-8001}:8001"
     restart: unless-stopped
 
   web:

@@ -18,8 +18,12 @@ from common.constants import (
     OrderStatus,
     ProductStatus,
     Role,
+    ShiftStatus,
     SlipStatus,
     SlipType,
+    TxnMethod,
+    TxnStatus,
+    TxnType,
 )
 
 # Chuỗi bắt buộc: bỏ khoảng trắng hai đầu, không rỗng
@@ -309,3 +313,110 @@ class OrderItemsChange(BaseModel):
 
 class OrderCancel(BaseModel):
     reason: NonBlank  # K-03
+
+
+# ---------------------------------------------------------------- Ca, thu tiền, hóa đơn (vòng 6)
+
+TxnResult = Literal[TxnStatus.SUCCESS, TxnStatus.FAILED]
+
+
+class ShiftOpen(BaseModel):
+    opening_cash: int  # âm thì service trả VALIDATION_ERROR CA-01
+
+
+class ShiftClose(BaseModel):
+    counted_cash: int  # âm thì service trả VALIDATION_ERROR CA-02
+    variance_reason: str | None = None  # bắt buộc khi chênh lệch khác 0 (CA-02)
+
+
+class ShiftProxyClose(ShiftClose):
+    witness_id: NonBlank  # CA-04
+    proxy_reason: NonBlank
+
+
+class Shift(BaseModel):
+    shift_id: str
+    branch_id: str
+    cashier_id: str
+    status: ShiftStatus
+    opened_at: datetime
+    closed_at: datetime | None
+    settled_at: datetime | None
+    opening_cash: int
+    counted_cash: int | None
+    variance_reason: str | None
+    proxy_closed_by: str | None
+    witness_id: str | None
+    proxy_reason: str | None
+    confirmed_by: str | None
+    expected_cash: int  # dẫn xuất (CA-02)
+    variance: int | None  # tiền kiểm đếm − tiền mặt kỳ vọng; null khi chưa kiểm đếm
+
+
+class Transaction(BaseModel):
+    txn_id: str
+    order_id: str
+    return_id: str | None
+    shift_id: str
+    type: TxnType
+    method: TxnMethod
+    amount: int
+    status: TxnStatus
+    created_at: datetime
+    resolved_at: datetime | None
+    reference_code: str | None
+    cash_refund_approved_by: str | None
+    cash_refund_reason: str | None
+
+
+class ShiftMethodTotal(BaseModel):
+    type: TxnType
+    method: TxnMethod
+    count: int
+    amount: int
+
+
+class ShiftDetail(Shift):
+    """Ca kèm kết quả đối soát (CA-03)."""
+
+    cash_collected: int
+    cash_refunded: int
+    electronic: list[ShiftMethodTotal]
+    failed: list[Transaction]
+    pending: list[Transaction]
+
+
+class PaymentCreate(BaseModel):
+    method: TxnMethod
+
+
+class CashConfirm(BaseModel):
+    result: TxnResult  # FAILED = khách không đưa tiền
+
+
+class Reconcile(BaseModel):
+    result: TxnResult
+    reference_code: str | None = None  # bắt buộc khi SUCCESS (TT-02)
+
+
+class BankCallback(Reconcile):
+    txn_id: NonBlank
+
+
+class InvoiceLine(BaseModel):
+    product_id: str
+    name: str
+    quantity: int
+    unit_price: int
+    amount: int
+
+
+class Invoice(BaseModel):
+    invoice_no: str
+    order_id: str
+    branch_id: str
+    issued_at: datetime
+    print_count: int
+    method: TxnMethod
+    total: int
+    items: list[InvoiceLine]
