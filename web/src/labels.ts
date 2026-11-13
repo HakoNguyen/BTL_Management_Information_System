@@ -52,6 +52,18 @@ export const TXN_METHOD_LABEL: Record<Schemas["TxnMethod"], string> = {
   CARD: "Thẻ",
 };
 
+export const TXN_STATUS_LABEL: Record<Schemas["TxnStatus"], string> = {
+  PENDING: "Chờ kết quả",
+  SUCCESS: "Thành công",
+  FAILED: "Thất bại",
+};
+
+export const SHIFT_STATUS_LABEL: Record<Schemas["ShiftStatus"], string> = {
+  OPEN: "Đang mở",
+  AWAITING_CONFIRMATION: "Chờ xác nhận",
+  SETTLED: "Đã chốt",
+};
+
 export const SLIP_TYPE_LABEL: Record<Schemas["SlipType"], string> = {
   IN_WAREHOUSE: "Nhập từ kho tổng",
   IN_SUPPLIER: "Nhập từ NCC",

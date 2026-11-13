@@ -5,13 +5,17 @@ import type { Role } from "./api/client";
 import { CustomersPage } from "./features/customers/CustomersPage";
 import { HomePage } from "./features/home/HomePage";
 import { OrdersPage } from "./features/orders/OrdersPage";
+import { InvoicesPage } from "./features/payments/InvoicesPage";
+import { PaymentsPage } from "./features/payments/PaymentsPage";
 import { ProductGroupsPage } from "./features/products/ProductGroupsPage";
 import { ProductsPage } from "./features/products/ProductsPage";
 import { ProductSalesReportPage } from "./features/reports/ProductSalesReportPage";
 import { RevenueReportPage } from "./features/reports/RevenueReportPage";
 import { StaffSalesReportPage } from "./features/reports/StaffSalesReportPage";
 import { StockReportPage } from "./features/reports/StockReportPage";
+import { RefundsPage } from "./features/returns/RefundsPage";
 import { ReturnsPage } from "./features/returns/ReturnsPage";
+import { ShiftsPage } from "./features/shifts/ShiftsPage";
 import { BranchesPage } from "./features/staff/BranchesPage";
 import { EmployeesPage } from "./features/staff/EmployeesPage";
 
@@ -35,6 +39,10 @@ export const MENU: MenuItem[] = [
   { path: "/customers", label: "Khách hàng", roles: ["SALES"], element: <CustomersPage /> },
   { path: "/orders", label: "Đơn hàng", roles: ["SALES"], element: <OrdersPage /> },
   { path: "/returns", label: "Phiếu trả", roles: ["SALES"], element: <ReturnsPage /> },
+  { path: "/shifts", label: "Ca thu ngân", roles: ["CASHIER"], element: <ShiftsPage /> },
+  { path: "/payments", label: "Thu tiền", roles: ["CASHIER"], element: <PaymentsPage /> },
+  { path: "/invoices", label: "Hóa đơn", roles: ["CASHIER"], element: <InvoicesPage /> },
+  { path: "/refunds", label: "Hoàn tiền", roles: ["CASHIER"], element: <RefundsPage /> },
 ];
 
 export const menuFor = (role: Role) =>
