@@ -182,6 +182,10 @@ Các điểm đặc tả để trống ở mức triển khai, đã được ng�
 11. Vòng 1 (đặc tả để trống): không tạo, không phân công nhân viên vào chi nhánh Ngừng hoạt động; không phân công,
     không cấp tài khoản cho nhân viên Đã nghỉ; nhân viên chưa từng có tài khoản được chuyển Đã nghỉ; "phiếu chờ xử lý"
     của NV-04 gồm phiếu kho `PENDING` và phiếu trả `PENDING` của chi nhánh.
+12. Vòng 3 (duyệt 13/11/2026): số điện thoại khách chuẩn hóa bằng cách bỏ khoảng trắng, `.`, `-`, `(`, `)` và đổi
+    `+84` thành `0`; hợp lệ khi là `0` và 9 hoặc 10 chữ số (di động 10 số, máy bàn 11 số). 2.1 gặp số đã có thì trả
+    hồ sơ có sẵn với HTTP 200, không sửa họ tên, địa chỉ. 2.3 tra đúng một tiêu chí (số hoặc mã), trả mảng 0–1 phần
+    tử; tra hoặc sửa KHLE trả `RULE_VIOLATION` KH-02 ([api.md](api.md) nhóm 2).
 
 Giả định của người dựng khung, **chưa được người dùng xác nhận**. Vòng nào chạm tới thì nêu lại ở `/plan-task`:
 
@@ -189,10 +193,6 @@ Giả định của người dựng khung, **chưa được người dùng xác 
 - Người làm chứng khi đóng ca thay (CA-04): nhân viên Đang làm cùng chi nhánh, khác QL đóng thay và khác thu ngân của ca.
 - Lý do hủy đơn, xuất hủy, điều chỉnh là văn bản tự do; báo cáo gom theo đúng chuỗi lý do; giao diện gợi ý sẵn các lý do thường gặp.
 - Nhập hàng từ kho tổng/NCC cho sản phẩm Ngừng bán: đặc tả không nói; tạm cho phép.
-- Vòng 3, chuẩn hóa số điện thoại (2.1): bỏ khoảng trắng, `.`, `-`, `(`, `)`; `+84` → `0`; hợp lệ khi là `0` và 9
-  hoặc 10 chữ số ([api.md](api.md) nhóm 2).
-- Vòng 3, 2.1 gặp số đã có: trả hồ sơ có sẵn với HTTP 200 (tạo mới là 201), không cập nhật họ tên, địa chỉ.
-- Vòng 3, 2.3: tra đúng một tiêu chí (số hoặc mã), trả mảng 0–1 phần tử; tra KHLE hoặc sửa KHLE trả `RULE_VIOLATION` KH-02.
 
 ## 8. Việc hoãn có chủ đích
 
