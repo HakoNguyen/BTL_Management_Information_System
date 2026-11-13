@@ -198,11 +198,12 @@ async def seed_order(
     branch_id: str = BRANCH_1,
     status: OrderStatus = OrderStatus.DRAFT,
     completed_at: datetime | None = None,
+    customer_id: str = "KHLE",
 ) -> str:
     cancelled = status == OrderStatus.CANCELLED
     return await conn.fetchval(
         "INSERT INTO orders (branch_id, customer_id, created_by, created_at, completed_at, status,"
-        " cancelled_at, cancel_reason) VALUES ($1, 'KHLE', $2, $3, $4, $5, $6, $7)"
+        " cancelled_at, cancel_reason) VALUES ($1, $8, $2, $3, $4, $5, $6, $7)"
         " RETURNING order_id",
         branch_id,
         created_by,
@@ -211,6 +212,7 @@ async def seed_order(
         status,
         SEED_AT if cancelled else None,
         "Khách đổi ý" if cancelled else None,
+        customer_id,
     )
 
 

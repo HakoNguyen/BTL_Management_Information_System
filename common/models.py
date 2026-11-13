@@ -174,3 +174,28 @@ class PriceHistoryEntry(BaseModel):
 
 class ProductStatusChange(BaseModel):
     status: ProductStatus
+
+
+# ---------------------------------------------------------------- Nhóm 2 (vòng 3)
+# Số điện thoại chuẩn hóa và kiểm tra ở service (KH-01), dùng chung cho tạo, cập nhật, tra cứu.
+
+
+class Customer(BaseModel):
+    customer_id: str
+    full_name: str
+    phone: str | None  # chỉ KHLE không có số (KH-02)
+    address: str | None
+    registered_on: date
+
+
+class CustomerCreate(BaseModel):
+    full_name: NonBlank
+    phone: NonBlank
+    address: str | None = None
+
+
+class CustomerUpdate(BaseModel):
+    # Mã khách không đổi (KH-03)
+    full_name: NonBlank = None  # type: ignore[assignment]
+    phone: NonBlank = None  # type: ignore[assignment]
+    address: str | None = None
