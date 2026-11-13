@@ -6,13 +6,26 @@ Mỗi vòng nghiệp vụ thêm hàm dựng dữ liệu của mình vào đây (
 
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date, datetime, time
 
 import asyncpg
 import httpx
 
 from common.auth import hash_password
-from common.constants import AccountStatus, EmployeeStatus, Role
+from common.clock import VN_TZ
+from common.constants import (
+    AccountStatus,
+    EmployeeStatus,
+    OrderStatus,
+    ReturnStatus,
+    Role,
+    ShiftStatus,
+    SlipStatus,
+    SlipType,
+    TxnMethod,
+    TxnStatus,
+    TxnType,
+)
 
 TEST_SECRET = "khoa-bi-mat-chi-dung-cho-test"
 TEST_PASSWORD = "mat-khau-test"
@@ -76,3 +89,149 @@ async def login_as(client: httpx.AsyncClient, employee_id: str) -> dict[str, str
     )
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['token']}"}
+
+
+async def seed_staff(conn: asyncpg.Connection) -> None:
+    """CN1, CN2 và năm nhân viên mẫu (HQ_ID không thuộc chi nhánh; bốn người còn lại ở CN1)."""
+    await seed_branch(conn, BRANCH_1)
+    await seed_branch(conn, BRANCH_2)
+    await seed_employee(conn, HQ_ID, Role.HQ)
+    for employee_id, role in (
+        (MANAGER_ID, Role.MANAGER),
+        (SALES_ID, Role.SALES),
+        (CASHIER_ID, Role.CASHIER),
+        (WAREHOUSE_ID, Role.WAREHOUSE),
+    ):
+        await seed_employee(conn, employee_id, role, BRANCH_1)
+
+
+# Các hàm dưới đây chèn thẳng chứng từ D3, D4, D5 để test vòng 1 dựng trạng thái khi module sở hữu
+# chưa có API. shortcut: chỉ điền cột bắt buộc; vòng của module sở hữu viết lại qua API của mình.
+SEED_AT = datetime(2026, 1, 1, 9, 0, tzinfo=VN_TZ)
+
+
+async def seed_product(
+    conn: asyncpg.Connection, product_id: str = "A", price: int = 100_000
+) -> str:
+    # shortcut: chưa ghi lịch sử giá (SP-02); vòng 2 thay bằng hàm đầy đủ
+    await conn.execute(
+        "INSERT INTO product_groups (group_id, name) VALUES ('NHOM1', 'Nhóm mẫu')"
+        " ON CONFLICT DO NOTHING"
+    )
+    await conn.execute(
+        "INSERT INTO products (product_id, name, group_id, unit, current_price)"
+        " VALUES ($1, $2, 'NHOM1', 'cái', $3)",
+        product_id,
+        f"Sản phẩm {product_id}",
+        price,
+    )
+    return product_id
+
+
+async def seed_stock(
+    conn: asyncpg.Connection, branch_id: str, product_id: str, quantity: int
+) -> None:
+    await conn.execute(
+        "INSERT INTO stock (branch_id, product_id, quantity) VALUES ($1, $2, $3)",
+        branch_id,
+        product_id,
+        quantity,
+    )
+
+
+async def seed_shift(
+    conn: asyncpg.Connection,
+    cashier_id: str,
+    branch_id: str = BRANCH_1,
+    status: ShiftStatus = ShiftStatus.OPEN,
+) -> str:
+    return await conn.fetchval(
+        "INSERT INTO shifts (branch_id, cashier_id, opened_at, opening_cash, status)"
+        " VALUES ($1, $2, $3, 0, $4) RETURNING shift_id",
+        branch_id,
+        cashier_id,
+        SEED_AT,
+        status,
+    )
+
+
+async def seed_order(
+    conn: asyncpg.Connection,
+    created_by: str,
+    branch_id: str = BRANCH_1,
+    status: OrderStatus = OrderStatus.DRAFT,
+    completed_at: datetime | None = None,
+) -> str:
+    cancelled = status == OrderStatus.CANCELLED
+    return await conn.fetchval(
+        "INSERT INTO orders (branch_id, customer_id, created_by, created_at, completed_at, status,"
+        " cancelled_at, cancel_reason) VALUES ($1, 'KHLE', $2, $3, $4, $5, $6, $7)"
+        " RETURNING order_id",
+        branch_id,
+        created_by,
+        completed_at or SEED_AT,
+        completed_at,
+        status,
+        SEED_AT if cancelled else None,
+        "Khách đổi ý" if cancelled else None,
+    )
+
+
+async def seed_return_slip(
+    conn: asyncpg.Connection,
+    order_id: str,
+    created_by: str,
+    status: ReturnStatus = ReturnStatus.PENDING,
+    decided_by: str | None = None,
+) -> str:
+    return await conn.fetchval(
+        "INSERT INTO return_slips (order_id, created_by, created_at, reason, status, decided_by,"
+        " decided_at) VALUES ($1, $2, $3, 'Lỗi', $4, $5, $6) RETURNING return_id",
+        order_id,
+        created_by,
+        SEED_AT,
+        status,
+        decided_by,
+        None if status == ReturnStatus.PENDING else SEED_AT,
+    )
+
+
+async def seed_stock_slip(
+    conn: asyncpg.Connection,
+    branch_id: str,
+    created_by: str,
+    status: SlipStatus = SlipStatus.PENDING,
+) -> str:
+    return await conn.fetchval(
+        "INSERT INTO stock_slips (branch_id, type, status, created_at, created_by, reason,"
+        " finalized_at) VALUES ($1, $2, $3, $4, $5, 'Hàng hỏng', $6) RETURNING slip_id",
+        branch_id,
+        SlipType.ADJUST_DOWN,
+        status,
+        SEED_AT,
+        created_by,
+        None if status == SlipStatus.PENDING else SEED_AT,
+    )
+
+
+async def seed_transaction(
+    conn: asyncpg.Connection,
+    order_id: str,
+    shift_id: str,
+    status: TxnStatus = TxnStatus.SUCCESS,
+    return_id: str | None = None,
+) -> str:
+    """Giao dịch tiền mặt 100.000; có `return_id` thì là giao dịch Hoàn của phiếu đó."""
+    return await conn.fetchval(
+        "INSERT INTO transactions (order_id, return_id, shift_id, type, method, amount, status,"
+        " created_at, resolved_at) VALUES ($1, $2, $3, $4, $5, 100000, $6, $7, $8)"
+        " RETURNING txn_id",
+        order_id,
+        return_id,
+        shift_id,
+        TxnType.REFUND if return_id else TxnType.COLLECT,
+        TxnMethod.CASH,
+        status,
+        SEED_AT,
+        None if status == TxnStatus.PENDING else SEED_AT,
+    )

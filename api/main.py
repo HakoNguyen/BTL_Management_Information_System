@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 
 import asyncpg
 from fastapi import FastAPI
-from routers import auth
+from routers import auth, staff
 from services import auth as auth_service
 
 from common.constants import (
@@ -56,6 +56,7 @@ def create_app() -> FastAPI:
 
     # Mỗi vòng nghiệp vụ đăng ký router của mình bằng một dòng (docs/plan.md)
     app.include_router(auth.router)
+    app.include_router(staff.router)
     return app
 
 

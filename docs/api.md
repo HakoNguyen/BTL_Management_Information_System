@@ -66,6 +66,38 @@ Viết tắt vai trò: HQ = Trụ sở, QL = `MANAGER`, BH = `SALES`, TN = `CASH
 | 6.3 | `POST /employees/{employee_id}/account` | HQ | NV-03 |
 | 6.3 | `POST /employees/{employee_id}/account/lock`, `…/account/unlock` | HQ | NV-03 |
 
+Trường (chốt ở vòng 1). `?` là trường không bắt buộc; ở `PATCH`, trường không gửi thì giữ nguyên.
+
+| Model | Trường |
+| --- | --- |
+| `Branch` (response) | `branch_id`, `name`, `address` (null được), `phone` (null được), `closing_time` (`HH:MM:SS`, giờ Việt Nam), `status` (`BranchStatus`) |
+| `BranchCreate` | `branch_id`, `name`, `address?`, `phone?`, `closing_time` |
+| `BranchUpdate` | `name?`, `address?`, `phone?`, `closing_time?`; `name`, `closing_time` không nhận null |
+| `Employee` (response) | `employee_id`, `full_name`, `phone`, `role`, `branch_id` (null với HQ), `hired_on` (ngày), `status` (`EmployeeStatus`), `username` (null nếu chưa cấp), `account_status` (`AccountStatus`, null nếu chưa cấp). Không bao giờ trả mật khẩu |
+| `EmployeeCreate` | `employee_id`, `full_name`, `phone?`, `hired_on`, `role`, `branch_id?` (vai trò bắt buộc vì mỗi nhân viên có đúng một vai trò, NV-01) |
+| `EmployeeUpdate` | `full_name?`, `phone?`, `hired_on?`; vai trò, chi nhánh đổi qua 6.2 |
+| `AssignmentRequest` | `role`, `branch_id` (null với HQ) |
+| `AccountCreate` | `username` (bỏ khoảng trắng hai đầu) |
+| `AccountIssued` (response) | `employee_id`, `username`, `temporary_password` (chỉ trả một lần), `account_status` |
+
+| Endpoint | Request → response | Lỗi nghiệp vụ |
+| --- | --- | --- |
+| `GET /branches` | → `Branch[]` (cả chi nhánh Ngừng hoạt động) | |
+| `POST /branches` | `BranchCreate` → `201 Branch` | `DUPLICATE` NV-04 |
+| `PATCH /branches/{branch_id}` | `BranchUpdate` → `Branch` | `NOT_FOUND` |
+| `POST /branches/{branch_id}/deactivate` | → `Branch` | `NOT_FOUND`; `INVALID_STATE` (đã ngừng); `RULE_VIOLATION` NV-04, thông báo liệt kê mọi điều kiện chưa đạt |
+| `GET /employees` | → `Employee[]` | |
+| `POST /employees` | `EmployeeCreate` → `201 Employee` | `DUPLICATE` NV-01; `RULE_VIOLATION` NV-01 (vai trò và chi nhánh không khớp); `NOT_FOUND` (chi nhánh); `RULE_VIOLATION` NV-04 (chi nhánh Ngừng hoạt động) |
+| `PATCH /employees/{employee_id}` | `EmployeeUpdate` → `Employee` | `NOT_FOUND` |
+| `POST /employees/{employee_id}/leave` | → `Employee` | `NOT_FOUND`; `INVALID_STATE` (đã nghỉ); `RULE_VIOLATION` NV-03 (tài khoản chưa khóa, còn ca chưa chốt) |
+| `PUT /employees/{employee_id}/assignment` | `AssignmentRequest` → `Employee` | `NOT_FOUND`; `INVALID_STATE` (đã nghỉ); `RULE_VIOLATION` NV-01, NV-02 (thông báo liệt kê chứng từ đang chặn), NV-04 (chi nhánh Ngừng hoạt động) |
+| `POST /employees/{employee_id}/account` | `AccountCreate` → `201 AccountIssued` | `NOT_FOUND`; `INVALID_STATE` NV-03 (đã nghỉ, đã có tài khoản); `DUPLICATE` NV-03 (tên đăng nhập đã dùng, kể cả của người đã nghỉ) |
+| `POST /employees/{employee_id}/account/lock`, `…/unlock` | → `Employee` | `NOT_FOUND`; `INVALID_STATE` (chưa cấp, hoặc đã ở trạng thái đích) |
+
+Quyết định của người dùng ở vòng 1 (đặc tả để trống): không tạo, không phân công vào chi nhánh Ngừng hoạt động;
+không phân công, không cấp tài khoản cho nhân viên Đã nghỉ; nhân viên chưa từng có tài khoản được chuyển Đã nghỉ;
+"phiếu chờ xử lý" của NV-04 gồm phiếu kho `PENDING` của chi nhánh và phiếu trả `PENDING` của đơn thuộc chi nhánh.
+
 ### Nhóm 1 – Sản phẩm (vòng 2)
 
 | Chức năng | Method, đường dẫn | Vai trò | Quy tắc |
