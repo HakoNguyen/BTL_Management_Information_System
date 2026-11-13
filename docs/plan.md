@@ -4,7 +4,7 @@ File này cho biết dự án đang ở đâu và việc tiếp theo là gì. Đ
 
 ## 1. Tiến độ
 
-**Vòng tiếp theo: 10 (giao diện), lượt Quản lý cửa hàng.** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
+**Đã xong cả 10 vòng.** Việc còn lại xem mục 8. Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
 dùng dữ liệu và hàm của vòng trước.
 
 | Vòng | Module | Nhánh | Chức năng | Quy tắc | Tình huống KT | Trạng thái |
@@ -19,7 +19,7 @@ dùng dữ liệu và hàm của vòng trước.
 | 7 | `returns`, `customers` | `returns/return-refund` | 3.4 phần phiếu trả và hoàn tiền; 2.4 | TH-01 đến TH-05, KH-04 | KT-08, KT-09 | **xong** (13/11/2026) |
 | 8 | `workers/closing`, `inventory`, `reports` | `closing/end-of-day-replenishment` | Sự kiện giờ đóng cửa; 4.4; 5.4 | BH-05, TH-03, TK-06 | KT-07, KT-14 | **xong** (13/11/2026) |
 | 9 | `reports` | `reports/revenue-stock-staff` | 5.1, 5.2, 5.3, 5.5 | DT-01 đến DT-05 | KT-10, 13, 15 | **xong** (13/11/2026) |
-| 10 | `web` | `web/role-screens` | Giao diện theo 5 vai trò; dữ liệu demo | Ma trận 2.2 | chạy tay luồng P1–P5 | đang làm: lượt Trụ sở xong (13/11/2026, nhánh `web/hq-screens`); lượt NVBH xong (13/11/2026, nhánh `web/sales-screens`); lượt Thu ngân xong (13/11/2026, nhánh `web/cashier-screens`); lượt NV kho xong (13/11/2026, nhánh `web/warehouse-screens`) |
+| 10 | `web` | `web/role-screens` | Giao diện theo 5 vai trò; dữ liệu demo | Ma trận 2.2 | chạy tay luồng P1–P5 | **xong** (13/11/2026): lượt Trụ sở (`web/hq-screens`), NVBH (`web/sales-screens`), Thu ngân (`web/cashier-screens`), NV kho (`web/warehouse-screens`), Quản lý cửa hàng kèm duyệt thay và dữ liệu demo (`web/manager-screens`) |
 
 Xong một vòng thì sửa cột "Trạng thái" ở bảng này, dòng "Vòng tiếp theo" ở trên, và cột "Trạng thái" của các
 tình huống KT trong [tests.md](tests.md).
@@ -216,6 +216,12 @@ Giả định của người dựng khung, **chưa được người dùng xác 
   bán. Biến động 5.3 gom theo chi nhánh, loại, lý do, sản phẩm. Các con số khác chi tiết ở [api.md](api.md) nhóm 5.
 - Vòng 10 (lượt NV kho): trang Tồn kho chi nhánh lấy phần `lines` của `GET /reports/stock` (kỳ hôm nay), vì
   `GET /stock` không có mức tồn so ngưỡng và giao diện không tự so (ma trận 2.2: NV kho xem 4.1 qua 4.4, 5.3).
+- Vòng 10 (lượt QL): QL không có quyền 6.1 nên không xem được danh sách nhân viên; khi đóng ca thay, người làm
+  chứng nhập bằng mã nhân viên và API kiểm tra CA-04. Giao dịch hoàn điện tử Thất bại chỉ có trong `failed` của
+  `GET /shifts/{shift_id}`, nên nút duyệt hoàn tiền mặt nằm trong chi tiết ca. HQ xác nhận chốt ca đóng thay không
+  nhập lý do mới (`confirm` không có body, quyết định 14); lý do là `proxy_reason`, hiện lúc xác nhận.
+- Vòng 10 (dữ liệu demo): `make seed-demo` tạo qua API; mật khẩu demo là mật khẩu tạm do 6.3 sinh, chỉ in lúc
+  cấp. Tồn đầu kỳ (20 mỗi sản phẩm A..D tại CN1, giá 100.000) và 3 khách chỉ tạo ở lần cấp tài khoản NV kho, NVBH.
 
 ## 8. Việc hoãn có chủ đích
 
