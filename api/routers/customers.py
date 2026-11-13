@@ -1,4 +1,4 @@
-"""Nhóm 2 – Khách hàng (docs/api.md mục 4). Chỉ NVBH (ma trận 2.2)."""
+"""Nhóm 2 – Khách hàng (docs/api.md mục 4): 2.1 đến 2.4. Chỉ NVBH (ma trận 2.2)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Response
 from services import customers
 
 from common.constants import Role
-from common.models import CurrentUser, Customer, CustomerCreate, CustomerUpdate
+from common.models import CurrentUser, Customer, CustomerCreate, CustomerHistory, CustomerUpdate
 
 router = APIRouter(tags=["customers"])
 SalesUser = Annotated[CurrentUser, Depends(require_role(Role.SALES))]
@@ -37,3 +37,8 @@ async def search_customers(
     _: SalesUser, conn: Conn, phone: str | None = None, customer_id: str | None = None
 ) -> list[Customer]:
     return await customers.search_customers(conn, phone, customer_id)
+
+
+@router.get("/customers/{customer_id}/history")
+async def get_history(customer_id: str, phone: str, _: SalesUser, conn: Conn) -> CustomerHistory:
+    return await customers.get_history(conn, customer_id, phone)

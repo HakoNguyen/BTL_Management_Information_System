@@ -56,14 +56,14 @@ Mỗi test assert đủ mọi ý trong cột "Kết quả kỳ vọng" của tì
 | Mã | Tình huống | File test | Vòng | Trạng thái |
 | --- | --- | --- | --- | --- |
 | KT-01 | Bán tiền mặt | `tests/payments/test_kt01_ban_tien_mat.py` | 6 | xanh |
-| KT-02 | Đổi giá | `tests/orders/test_kt02_doi_gia.py` | 5 (ý hoàn 100.000 bổ sung ở vòng 7) | xanh (trừ ý hoàn) |
+| KT-02 | Đổi giá | `tests/orders/test_kt02_doi_gia.py` | 5 (ý hoàn 100.000 bổ sung ở vòng 7) | xanh |
 | KT-03 | Khách đổi ý | `tests/orders/test_kt03_khach_doi_y.py` | 5 (giao dịch Chờ kết quả tạo qua API từ vòng 6) | xanh |
 | KT-04 | Thẻ thất bại rồi thành công | `tests/payments/test_kt04_the_that_bai.py` | 6 | xanh |
 | KT-05 | Mất phản hồi, phản hồi lặp | `tests/payments/test_kt05_mat_phan_hoi.py` | 6 | xanh |
 | KT-06 | Tranh hàng cuối cùng | `tests/payments/test_kt06_tranh_hang.py` | 6 | xanh |
 | KT-07 | Cuối ngày | `tests/orders/test_kt07_cuoi_ngay.py` | 8 | chưa viết |
-| KT-08 | Trả hàng tốt và lỗi | `tests/returns/test_kt08_tra_hang.py` | 7 | chưa viết |
-| KT-09 | Hoàn thẻ thất bại | `tests/returns/test_kt09_hoan_the_that_bai.py` | 7 | chưa viết |
+| KT-08 | Trả hàng tốt và lỗi | `tests/returns/test_kt08_tra_hang.py` | 7 | xanh |
+| KT-09 | Hoàn thẻ thất bại | `tests/returns/test_kt09_hoan_the_that_bai.py` | 7 | xanh |
 | KT-10 | Bán, trả, hoàn khác ngày | `tests/reports/test_kt10_khac_ngay.py` | 9 | chưa viết |
 | KT-11 | Đối soát ca | `tests/shifts/test_kt11_doi_soat_ca.py` | 6 | xanh |
 | KT-12 | Nhập nhầm và nhập trùng | `tests/inventory/test_kt12_nhap_nham.py` | 4 | xanh |

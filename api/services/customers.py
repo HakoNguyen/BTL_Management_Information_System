@@ -1,4 +1,4 @@
-"""Nhóm 2 – Khách hàng (kho D2): chức năng 2.1 đến 2.3.
+"""Nhóm 2 – Khách hàng (kho D2): chức năng 2.1 đến 2.4 (2.4 chỉ đọc D3).
 
 Mọi lệnh ghi vào `customers` nằm ở file này.
 Khách dùng chung toàn chuỗi (G-06) nên không so chi nhánh.
@@ -14,7 +14,8 @@ from common import clock
 from common.clock import VN_TZ
 from common.constants import WALK_IN_CUSTOMER_ID, ErrorCode
 from common.errors import AppError
-from common.models import Customer, CustomerCreate, CustomerUpdate
+from common.models import Customer, CustomerCreate, CustomerHistory, CustomerUpdate
+from services import orders, returns
 
 _COLUMNS = "customer_id, full_name, phone, address, registered_on"
 _PHONE = re.compile(r"0\d{9,10}")
@@ -110,3 +111,26 @@ async def search_customers(
     else:
         row = await _by_phone(conn, normalize_phone(phone or ""))
     return [] if row is None else [Customer(**row)]
+
+
+# ---------------------------------------------------------------- 2.4 Lịch sử mua và trả
+
+
+async def get_history(conn: asyncpg.Connection, customer_id: str, phone: str) -> CustomerHistory:
+    """KH-04: chỉ cung cấp cho đúng khách sau khi xác minh số điện thoại; KH-02: không cho KHLE."""
+    _reject_walk_in(customer_id)
+    phone = normalize_phone(phone)
+    row = await conn.fetchrow(
+        f"SELECT {_COLUMNS} FROM customers WHERE customer_id = $1", customer_id
+    )
+    if row is None:
+        raise AppError(ErrorCode.NOT_FOUND, f"Không tìm thấy {customer_id}")
+    if row["phone"] != phone:
+        raise AppError(
+            ErrorCode.RULE_VIOLATION, "Số điện thoại không khớp hồ sơ khách", rule="KH-04"
+        )
+    return CustomerHistory(
+        customer=Customer(**row),
+        orders=await orders.completed_orders_of_customer(conn, customer_id),
+        returns=await returns.returns_of_customer(conn, customer_id),
+    )

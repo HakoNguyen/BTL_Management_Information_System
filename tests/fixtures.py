@@ -333,3 +333,55 @@ async def bank_callback(
         json={"txn_id": txn_id, "result": result, "reference_code": reference_code},
         headers={"X-Bank-Key": key},
     )
+
+
+# ---------------------------------------------------------------- Vòng 7: đơn Hoàn tất, phiếu trả
+
+
+async def resolve_txn(
+    client: httpx.AsyncClient, headers: dict[str, str], txn: dict, result: TxnStatus
+) -> dict:
+    """Giao dịch Chờ kết quả có kết quả: tiền mặt do thu ngân xác nhận, điện tử do cổng gọi lại."""
+    if txn["method"] == TxnMethod.CASH:
+        response = await client.post(
+            f"/transactions/{txn['txn_id']}/confirm-cash", json={"result": result}, headers=headers
+        )
+    else:
+        reference = f"REF-{txn['txn_id']}" if result == TxnStatus.SUCCESS else None
+        response = await bank_callback(client, txn["txn_id"], result, reference)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+async def complete_order(
+    client: httpx.AsyncClient,
+    sales: dict[str, str],
+    cashier: dict[str, str],
+    items: dict[str, int],
+    method: TxnMethod = TxnMethod.CASH,
+) -> str:
+    """Lập, chốt, thu Thành công qua API (thu ngân phải có ca Đang mở); trả mã đơn Hoàn tất."""
+    order_id = await create_awaiting_order(client, sales, items)
+    await resolve_txn(
+        client, cashier, await start_payment(client, cashier, order_id, method), TxnStatus.SUCCESS
+    )
+    return order_id
+
+
+async def create_return(
+    client: httpx.AsyncClient,
+    headers: dict[str, str],
+    order_id: str,
+    items: dict[str, tuple[int, int]],
+    reason: str = "Khách không ưng",
+) -> httpx.Response:
+    """Lập phiếu trả (3.4); `items` là {mã SP: (số lượng tốt, số lượng lỗi)}."""
+    body = {
+        "order_id": order_id,
+        "reason": reason,
+        "items": [
+            {"product_id": pid, "good_qty": good, "defective_qty": bad}
+            for pid, (good, bad) in items.items()
+        ],
+    }
+    return await client.post("/returns", json=body, headers=headers)

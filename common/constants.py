@@ -52,6 +52,14 @@ class ReturnStatus(StrEnum):
     REJECTED = "REJECTED"  # Từ chối
 
 
+class RefundStatus(StrEnum):
+    """Tình trạng hoàn tiền của phiếu trả: dẫn xuất từ giao dịch Hoàn, không lưu (db.md mục 6)."""
+
+    NOT_REFUNDED = "NOT_REFUNDED"  # Chưa hoàn
+    PENDING = "PENDING"  # Đang chờ kết quả
+    REFUNDED = "REFUNDED"  # Đã hoàn
+
+
 class TxnType(StrEnum):
     COLLECT = "COLLECT"  # Thu
     REFUND = "REFUND"  # Hoàn

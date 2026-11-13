@@ -17,6 +17,8 @@ from common.constants import (
     EmployeeStatus,
     OrderStatus,
     ProductStatus,
+    RefundStatus,
+    ReturnStatus,
     Role,
     ShiftStatus,
     SlipStatus,
@@ -420,3 +422,58 @@ class Invoice(BaseModel):
     method: TxnMethod
     total: int
     items: list[InvoiceLine]
+
+
+# ---------------------------------------------------------------- Trả hàng, hoàn tiền (vòng 7)
+
+
+class ReturnItemInput(BaseModel):
+    product_id: NonBlank
+    good_qty: int = Field(ge=0)
+    defective_qty: int = Field(ge=0)  # tổng tốt + lỗi > 0 do service kiểm tra (TH-02)
+
+
+class ReturnCreate(BaseModel):
+    order_id: NonBlank
+    reason: NonBlank  # TH-02
+    items: list[ReturnItemInput] = Field(min_length=1)
+
+
+class ReturnItem(BaseModel):
+    product_id: str
+    good_qty: int
+    defective_qty: int
+    unit_price: int  # đơn giá chốt trên đơn gốc
+    amount: int  # (tốt + lỗi) × đơn giá chốt
+
+
+class ReturnSlip(BaseModel):
+    return_id: str
+    order_id: str
+    branch_id: str
+    created_by: str
+    created_at: datetime
+    reason: str
+    status: ReturnStatus
+    decided_by: str | None  # null = Hệ thống tự từ chối
+    decided_at: datetime | None
+    decision_note: str | None
+    value: int  # giá trị phiếu, dẫn xuất (TH-04)
+    refund_status: RefundStatus | None  # dẫn xuất; null khi phiếu chưa Đã duyệt
+    items: list[ReturnItem]
+
+
+class ReturnDecision(BaseModel):
+    decision_note: str | None = None  # bắt buộc khi HQ duyệt (K-02) và khi từ chối (K-03)
+
+
+class CashRefundApproval(BaseModel):
+    reason: NonBlank  # TH-04
+
+
+class CustomerHistory(BaseModel):
+    """2.4: lịch sử mua và trả của khách sau khi xác minh số điện thoại (KH-04)."""
+
+    customer: Customer
+    orders: list[Order]
+    returns: list[ReturnSlip]

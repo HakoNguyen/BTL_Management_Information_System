@@ -1,7 +1,4 @@
-"""KT-02 Đổi giá (SP-02, SP-03, BH-02, BH-03; chức năng 1.3, 3.1).
-
-Ý "trả 1 A của X được hoàn 100.000" (TH-04) bổ sung ở vòng 7.
-"""
+"""KT-02 Đổi giá (SP-02, SP-03, BH-02, BH-03, TH-04; chức năng 1.3, 3.1)."""
 
 from __future__ import annotations
 
@@ -10,10 +7,26 @@ from datetime import datetime
 import asyncpg
 import httpx
 import pytest
-from fixtures import BRANCH_1, HQ_ID, SALES_ID, login_as, seed_product, seed_staff, seed_stock
+from fixtures import (
+    BRANCH_1,
+    CASHIER_ID,
+    HQ_ID,
+    MANAGER_ID,
+    SALES_ID,
+    create_awaiting_order,
+    create_return,
+    login_as,
+    open_shift,
+    resolve_txn,
+    seed_product,
+    seed_staff,
+    seed_stock,
+    start_payment,
+)
 
 from common import clock
 from common.clock import VN_TZ
+from common.constants import TxnMethod, TxnStatus
 
 pytestmark = pytest.mark.db
 
@@ -72,3 +85,37 @@ async def test_kt02_doi_gia(client: httpx.AsyncClient, conn: asyncpg.Connection)
     assert x_again["items"][0]["unit_price"] == 110_000
     assert x_again["total"] == 220_000
     assert datetime.fromisoformat(x_again["confirmed_at"]) == _at(10, 0)
+
+
+async def test_kt02_hoan_theo_gia_chot(client: httpx.AsyncClient, conn: asyncpg.Connection) -> None:
+    """Trả 1 A của X (đã thanh toán 200.000) được hoàn 100.000 dù giá hiện hành là 110.000."""
+    await seed_staff(conn)
+    await seed_product(conn, "A")
+    await seed_stock(conn, BRANCH_1, "A", 10)
+    bh = await login_as(client, SALES_ID)
+    hq = await login_as(client, HQ_ID)
+    tn = await login_as(client, CASHIER_ID)
+    ql = await login_as(client, MANAGER_ID)
+
+    clock.freeze(_at(9, 0))
+    x = await create_awaiting_order(client, bh, {"A": 2})
+    clock.freeze(_at(9, 30))
+    response = await client.put("/products/A/price", json={"price": 110_000}, headers=hq)
+    assert response.status_code == 200, response.text
+
+    clock.freeze(_at(10, 0))
+    await open_shift(client, tn)
+    collect = await resolve_txn(
+        client, tn, await start_payment(client, tn, x, TxnMethod.CASH), TxnStatus.SUCCESS
+    )
+    assert collect["amount"] == 200_000
+
+    response = await create_return(client, bh, x, {"A": (1, 0)})
+    assert response.status_code == 201, response.text
+    return_id = response.json()["return_id"]
+    assert response.json()["value"] == 100_000
+    response = await client.post(f"/returns/{return_id}/approve", json={}, headers=ql)
+    assert response.status_code == 200, response.text
+    response = await client.post(f"/returns/{return_id}/refunds", headers=tn)
+    assert response.status_code == 201, response.text
+    assert response.json()["amount"] == 100_000
