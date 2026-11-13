@@ -1,7 +1,4 @@
-"""KT-03 Khách đổi ý (BH-03, BH-04; chức năng 3.1, 3.4).
-
-Giao dịch Chờ kết quả được chèn bằng SQL vì 3.2 chưa có API (vòng 6 chuyển sang API).
-"""
+"""KT-03 Khách đổi ý (BH-03, BH-04; chức năng 3.1, 3.4)."""
 
 from __future__ import annotations
 
@@ -15,16 +12,16 @@ from fixtures import (
     CASHIER_ID,
     SALES_ID,
     login_as,
+    open_shift,
     seed_product,
-    seed_shift,
     seed_staff,
     seed_stock,
-    seed_transaction,
+    start_payment,
 )
 
 from common import clock
 from common.clock import VN_TZ
-from common.constants import ErrorCode, OrderStatus, TxnStatus
+from common.constants import ErrorCode, OrderStatus, TxnMethod
 
 pytestmark = pytest.mark.db
 
@@ -82,7 +79,9 @@ async def test_kt03_khach_doi_y(client: httpx.AsyncClient, conn: asyncpg.Connect
 
     # Z đang có giao dịch Chờ kết quả thì không mở lại hay hủy được
     z2 = await _new_awaiting(client, bh)
-    await seed_transaction(conn, z2, await seed_shift(conn, CASHIER_ID), status=TxnStatus.PENDING)
+    tn = await login_as(client, CASHIER_ID)
+    await open_shift(client, tn)
+    await start_payment(client, tn, z2, TxnMethod.TRANSFER)
     for response in (
         await client.post(f"/orders/{z2}/reopen", headers=bh),
         await client.post(f"/orders/{z2}/cancel", json={"reason": "Khách bỏ về"}, headers=bh),

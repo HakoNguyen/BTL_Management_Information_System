@@ -261,6 +261,45 @@ NVBH thao tác đơn người khác lập trả `FORBIDDEN` với `rule` của e
 
 `orders.mark_completed` không tìm thấy đơn `AWAITING_PAYMENT` thì ném `INVALID_STATE`.
 
+Trường ca, giao dịch, hóa đơn (chốt ở vòng 6). Ca chỉ do thu ngân của ca đóng; ca, giao dịch, hóa đơn của chi nhánh
+khác trả `FORBIDDEN` `rule` = K-01.
+
+| Model | Trường |
+| --- | --- |
+| `ShiftOpen` | `opening_cash` (≥ 0, CA-01) |
+| `ShiftClose` | `counted_cash` (≥ 0), `variance_reason` (bắt buộc khi chênh lệch khác 0, CA-02) |
+| `ShiftProxyClose` | `counted_cash`, `variance_reason` như `ShiftClose`; `witness_id`, `proxy_reason` (bắt buộc, CA-04) |
+| `Shift` (response) | `shift_id`, `branch_id`, `cashier_id`, `status` (`ShiftStatus`), `opened_at`, `closed_at`, `settled_at`, `opening_cash`, `counted_cash`, `variance_reason`, `proxy_closed_by`, `witness_id`, `proxy_reason`, `confirmed_by`; dẫn xuất (CA-02): `expected_cash`, `variance` (null khi chưa kiểm đếm) |
+| `ShiftMethodTotal` | `type` (`TxnType`), `method` (`TxnMethod`), `count`, `amount` |
+| `ShiftDetail` (response) | các trường của `Shift`; kết quả đối soát (CA-03): `cash_collected`, `cash_refunded` (Σ thu, hoàn tiền mặt Thành công), `electronic` (`ShiftMethodTotal[]`, giao dịch điện tử Thành công theo loại và phương thức), `failed`, `pending` (`Transaction[]`) |
+| `Transaction` (response) | `txn_id`, `order_id`, `return_id`, `shift_id`, `type`, `method`, `amount`, `status` (`TxnStatus`), `created_at`, `resolved_at`, `reference_code`, `cash_refund_approved_by`, `cash_refund_reason` |
+| `PaymentCreate` | `method` (`TxnMethod`) |
+| `CashConfirm` | `result` (`SUCCESS` = đã nhận đủ; `FAILED` = khách không đưa tiền) |
+| `Reconcile` | `result` (`SUCCESS`/`FAILED`), `reference_code` (bắt buộc khi `SUCCESS`, TT-02) |
+| `BankCallback` | `txn_id`, `result` (`SUCCESS`/`FAILED`), `reference_code` (bắt buộc khi `SUCCESS`) |
+| `InvoiceLine` | `product_id`, `name`, `quantity`, `unit_price`, `amount` (= số lượng × đơn giá chốt) |
+| `Invoice` (response) | `invoice_no`, `order_id`, `branch_id`, `issued_at`, `print_count`, `method` (phương thức của giao dịch thu Thành công), `total`, `items` (`InvoiceLine[]`) |
+
+| Endpoint | Request → response | Lỗi nghiệp vụ |
+| --- | --- | --- |
+| `POST /shifts` | `ShiftOpen` → `201 ShiftDetail` `OPEN` tại chi nhánh của thu ngân | `VALIDATION_ERROR` CA-01 (tiền âm); `RULE_VIOLATION` CA-01 (chi nhánh Ngừng hoạt động); `INVALID_STATE` CA-01 (đã có ca `OPEN`) |
+| `GET /shifts/current` | → `ShiftDetail` ca `OPEN` của thu ngân, hoặc `null` | |
+| `POST /shifts/{shift_id}/close` | `ShiftClose` → `ShiftDetail` `AWAITING_CONFIRMATION`, ghi `closed_at` | `FORBIDDEN` K-01 (ca của người khác); `INVALID_STATE` CA-02 (không ở `OPEN`); `VALIDATION_ERROR` CA-02 (tiền âm); `RULE_VIOLATION` CA-02 (còn giao dịch tiền mặt `PENDING`; chênh lệch khác 0 mà thiếu lý do) |
+| `GET /shifts?status=…` | → `Shift[]` mới nhất trước: HQ mọi chi nhánh, QL chi nhánh mình, TN ca của mình | |
+| `GET /shifts/{shift_id}` | → `ShiftDetail` | `NOT_FOUND`; `FORBIDDEN` K-01 |
+| `POST /shifts/{shift_id}/proxy-close` | `ShiftProxyClose` → `ShiftDetail` `AWAITING_CONFIRMATION`, ghi `proxy_closed_by`, `witness_id`, `proxy_reason` | như `close` (trừ ca của người khác); `RULE_VIOLATION` CA-04 (người làm chứng không phải nhân viên Đang làm cùng chi nhánh, hoặc trùng QL đóng thay, trùng thu ngân của ca) |
+| `POST /shifts/{shift_id}/confirm` | → `ShiftDetail` `SETTLED`, ghi `settled_at`, `confirmed_by`. Ca thu ngân tự đóng: QL chi nhánh xác nhận. Ca QL đóng thay: chỉ HQ xác nhận (CA-04) | `INVALID_STATE` CA-03 (không ở `AWAITING_CONFIRMATION`); `RULE_VIOLATION` CA-03 (còn giao dịch `PENDING`); `FORBIDDEN` CA-04 (QL xác nhận ca đóng thay), K-02 (HQ xác nhận ca thu ngân tự đóng) |
+| `POST /orders/{order_id}/payments` | `PaymentCreate` → `201 Transaction` `COLLECT` `PENDING`, số tiền = tổng đơn, gắn ca `OPEN` của thu ngân; giữ hàng trước (TT-03); điện tử thì gọi cổng sau khi commit | `NOT_FOUND`; `FORBIDDEN` K-01; `INVALID_STATE` TT-01 (đơn không ở `AWAITING_PAYMENT`), TT-02 (đơn đang có giao dịch `PENDING`); `RULE_VIOLATION` TT-01 (thu ngân không có ca `OPEN` tại chi nhánh của đơn); `INSUFFICIENT_STOCK` TK-03 (không tạo giao dịch) |
+| `POST /transactions/{txn_id}/confirm-cash` | `CashConfirm` → `Transaction` | `NOT_FOUND`; `FORBIDDEN` K-01; `RULE_VIOLATION` TT-02 (không phải tiền mặt); `INVALID_STATE` TT-02 (đã có kết quả) |
+| `POST /transactions/{txn_id}/reconcile` | `Reconcile` → `Transaction` | như `confirm-cash` nhưng `RULE_VIOLATION` TT-02 khi là tiền mặt; `VALIDATION_ERROR` TT-02 (thiếu mã tham chiếu); `DUPLICATE` TT-02 (mã tham chiếu đã gắn giao dịch khác) |
+| `POST /bank/callback` | header `X-Bank-Key`; `BankCallback` → `Transaction`. Giao dịch đã có kết quả: trả nguyên trạng, không đổi gì | `UNAUTHORIZED` (sai khóa); `NOT_FOUND`; `VALIDATION_ERROR`, `DUPLICATE` TT-02 như `reconcile` |
+| `GET /orders/{order_id}/invoice` | → `Invoice` | `NOT_FOUND` (đơn chưa có hóa đơn); `FORBIDDEN` K-01 |
+| `POST /invoices/{invoice_no}/print` | → `Invoice` cùng số, `print_count` + 1 (TT-04) | `NOT_FOUND`; `FORBIDDEN` K-01 |
+
+Giao dịch thu có kết quả (qua `confirm-cash`, `reconcile` hoặc `bank/callback`) xử lý trong **một** transaction:
+`SUCCESS` → `inventory.confirm_sale`, `orders.mark_completed`, phát hành hóa đơn `print_count` = 0; `FAILED` →
+`inventory.release_hold`, đơn vẫn `AWAITING_PAYMENT`.
+
 ### Nhóm 5 – Báo cáo (vòng 8, 9)
 
 Tham số chung: `from`, `to` (kỳ lọc) và `branch_id` (chỉ HQ được chọn; vai trò khác luôn là chi nhánh mình).
@@ -304,4 +343,15 @@ Ngân hàng/Cổng thanh toán là tác nhân bên ngoài (G-04). Vòng 6 thêm 
   `FAILED`), `reference_code`. Phản hồi lặp cho giao dịch đã có kết quả: trả `200`, không đổi gì.
 - `bank-mock` có bốn chế độ phản hồi: thành công, thất bại, im lặng, phản hồi lặp.
 
-Chi tiết trường và biến môi trường chốt ở `/plan-task` vòng 6.
+Chốt ở vòng 6. Mã nguồn `infra/bank-mock/` (dùng lại fastapi, httpx, uvicorn), cổng 8001 trong mạng compose.
+
+| Biến môi trường | Dùng ở | Nghĩa |
+| --- | --- | --- |
+| `BANK_URL` | api | Địa chỉ cổng, ví dụ `http://bank-mock:8001`. Để trống thì api không gọi cổng (giao dịch giữ `PENDING`) |
+| `BANK_KEY` | api, bank-mock | Khóa bí mật gửi trong header `X-Bank-Key` của callback; để trống thì api từ chối mọi callback |
+| `BANK_CALLBACK_URL` | bank-mock | Địa chỉ callback của api, ví dụ `http://api:8000/bank/callback` |
+| `BANK_MOCK_MODE` | bank-mock | Chế độ ban đầu: `SUCCESS`, `FAILED`, `SILENT`, `DUPLICATE` (mặc định `SUCCESS`) |
+| `BANK_PORT` | compose | Cổng bank-mock mở ra máy host để gọi `PUT /mode` (mặc định 8001) |
+
+`bank-mock` có `POST /requests` (nhận yêu cầu từ api) và `PUT /mode` (thân `{"mode": …}`, đổi chế độ lúc demo).
+Mã tham chiếu cổng sinh là `REF-<txn_id>`; chế độ `DUPLICATE` gửi cùng một callback `SUCCESS` hai lần.

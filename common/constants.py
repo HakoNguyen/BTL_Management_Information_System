@@ -137,5 +137,9 @@ ENV_DB_URL = "DB_URL"
 ENV_SECRET_KEY = "SECRET_KEY"
 ENV_ADMIN_USERNAME = "ADMIN_USERNAME"
 ENV_ADMIN_PASSWORD = "ADMIN_PASSWORD"
+# Cổng thanh toán giả lập (docs/api.md mục 6)
+ENV_BANK_URL = "BANK_URL"
+ENV_BANK_KEY = "BANK_KEY"
+BANK_KEY_HEADER = "X-Bank-Key"
 # Mã nhân viên của tài khoản trụ sở đầu tiên, tạo khi API khởi động
 BOOTSTRAP_ADMIN_ID = "NV000"

@@ -259,18 +259,77 @@ async def seed_transaction(
     shift_id: str,
     status: TxnStatus = TxnStatus.SUCCESS,
     return_id: str | None = None,
+    amount: int = 100_000,
+    method: TxnMethod = TxnMethod.CASH,
 ) -> str:
     """Giao dịch tiền mặt 100.000; có `return_id` thì là giao dịch Hoàn của phiếu đó."""
     return await conn.fetchval(
         "INSERT INTO transactions (order_id, return_id, shift_id, type, method, amount, status,"
-        " created_at, resolved_at) VALUES ($1, $2, $3, $4, $5, 100000, $6, $7, $8)"
+        " created_at, resolved_at) VALUES ($1, $2, $3, $4, $5, $9, $6, $7, $8)"
         " RETURNING txn_id",
         order_id,
         return_id,
         shift_id,
         TxnType.REFUND if return_id else TxnType.COLLECT,
-        TxnMethod.CASH,
+        method,
         status,
         SEED_AT,
         None if status == TxnStatus.PENDING else SEED_AT,
+        amount,
+    )
+
+
+# ---------------------------------------------------------------- Vòng 6: ca, thu tiền qua API
+
+# Khóa X-Bank-Key của test; tests/conftest.py đặt vào BANK_KEY và bỏ BANK_URL cho mọi test
+BANK_TEST_KEY = "khoa-cong-thanh-toan-test"
+
+
+async def create_awaiting_order(
+    client: httpx.AsyncClient, headers: dict[str, str], items: dict[str, int]
+) -> str:
+    """Lập và chốt đơn KHLE qua API (3.1); trả mã đơn Chờ thanh toán."""
+    body = {
+        "customer_id": "KHLE",
+        "items": [{"product_id": pid, "quantity": qty} for pid, qty in items.items()],
+    }
+    response = await client.post("/orders", json=body, headers=headers)
+    assert response.status_code == 201, response.text
+    order_id = response.json()["order_id"]
+    response = await client.post(f"/orders/{order_id}/confirm", headers=headers)
+    assert response.status_code == 200, response.text
+    return order_id
+
+
+async def open_shift(
+    client: httpx.AsyncClient, headers: dict[str, str], opening_cash: int = 0
+) -> str:
+    response = await client.post("/shifts", json={"opening_cash": opening_cash}, headers=headers)
+    assert response.status_code == 201, response.text
+    return response.json()["shift_id"]
+
+
+async def start_payment(
+    client: httpx.AsyncClient, headers: dict[str, str], order_id: str, method: TxnMethod
+) -> dict:
+    """Khởi tạo thu (3.2); trả giao dịch Chờ kết quả."""
+    response = await client.post(
+        f"/orders/{order_id}/payments", json={"method": method}, headers=headers
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+async def bank_callback(
+    client: httpx.AsyncClient,
+    txn_id: str,
+    result: TxnStatus,
+    reference_code: str | None = None,
+    key: str = BANK_TEST_KEY,
+) -> httpx.Response:
+    """Cổng thanh toán gọi lại api (docs/api.md mục 6)."""
+    return await client.post(
+        "/bank/callback",
+        json={"txn_id": txn_id, "result": result, "reference_code": reference_code},
+        headers={"X-Bank-Key": key},
     )

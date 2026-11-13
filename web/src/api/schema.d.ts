@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bank/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bank Callback */
+        post: operations["bank_callback_bank_callback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/branches": {
         parameters: {
             query?: never;
@@ -262,6 +279,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/invoices/{invoice_no}/print": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Print Invoice */
+        post: operations["print_invoice_invoices__invoice_no__print_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/orders": {
         parameters: {
             query?: never;
@@ -331,6 +365,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/orders/{order_id}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Invoice */
+        get: operations["get_invoice_orders__order_id__invoice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/orders/{order_id}/items": {
         parameters: {
             query?: never;
@@ -342,6 +393,23 @@ export interface paths {
         /** Update Items */
         put: operations["update_items_orders__order_id__items_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/orders/{order_id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Payment */
+        post: operations["start_payment_orders__order_id__payments_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -505,6 +573,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Shifts */
+        get: operations["list_shifts_shifts_get"];
+        put?: never;
+        /** Open Shift */
+        post: operations["open_shift_shifts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shifts/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Shift */
+        get: operations["current_shift_shifts_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shifts/{shift_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Shift */
+        get: operations["get_shift_shifts__shift_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shifts/{shift_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Shift */
+        post: operations["close_shift_shifts__shift_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shifts/{shift_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Shift */
+        post: operations["confirm_shift_shifts__shift_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/shifts/{shift_id}/proxy-close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Proxy Close */
+        post: operations["proxy_close_shifts__shift_id__proxy_close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stock": {
         parameters: {
             query?: never;
@@ -625,6 +796,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/transactions/{txn_id}/confirm-cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Cash */
+        post: operations["confirm_cash_transactions__txn_id__confirm_cash_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/transactions/{txn_id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconcile */
+        post: operations["reconcile_transactions__txn_id__reconcile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -654,6 +859,18 @@ export interface components {
             /** Branch Id */
             branch_id?: string | null;
             role: components["schemas"]["Role"];
+        };
+        /** BankCallback */
+        BankCallback: {
+            /** Reference Code */
+            reference_code?: string | null;
+            /**
+             * Result
+             * @enum {string}
+             */
+            result: "SUCCESS" | "FAILED";
+            /** Txn Id */
+            txn_id: string;
         };
         /** Branch */
         Branch: {
@@ -706,6 +923,14 @@ export interface components {
             name?: string;
             /** Phone */
             phone?: string | null;
+        };
+        /** CashConfirm */
+        CashConfirm: {
+            /**
+             * Result
+             * @enum {string}
+             */
+            result: "SUCCESS" | "FAILED";
         };
         /**
          * CurrentUser
@@ -836,6 +1061,40 @@ export interface components {
              */
             type: "IN_WAREHOUSE" | "IN_SUPPLIER";
         };
+        /** Invoice */
+        Invoice: {
+            /** Branch Id */
+            branch_id: string;
+            /** Invoice No */
+            invoice_no: string;
+            /**
+             * Issued At
+             * Format: date-time
+             */
+            issued_at: string;
+            /** Items */
+            items: components["schemas"]["InvoiceLine"][];
+            method: components["schemas"]["TxnMethod"];
+            /** Order Id */
+            order_id: string;
+            /** Print Count */
+            print_count: number;
+            /** Total */
+            total: number;
+        };
+        /** InvoiceLine */
+        InvoiceLine: {
+            /** Amount */
+            amount: number;
+            /** Name */
+            name: string;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+            /** Unit Price */
+            unit_price: number;
+        };
         /** LoginRequest */
         LoginRequest: {
             /** Password */
@@ -923,6 +1182,10 @@ export interface components {
          * @enum {string}
          */
         OrderStatus: "DRAFT" | "AWAITING_PAYMENT" | "COMPLETED" | "PARTIALLY_RETURNED" | "FULLY_RETURNED" | "CANCELLED";
+        /** PaymentCreate */
+        PaymentCreate: {
+            method: components["schemas"]["TxnMethod"];
+        };
         /** PriceChange */
         PriceChange: {
             /** Price */
@@ -1019,11 +1282,145 @@ export interface components {
             /** Unit */
             unit?: string;
         };
+        /** Reconcile */
+        Reconcile: {
+            /** Reference Code */
+            reference_code?: string | null;
+            /**
+             * Result
+             * @enum {string}
+             */
+            result: "SUCCESS" | "FAILED";
+        };
         /**
          * Role
          * @enum {string}
          */
         Role: "HQ" | "MANAGER" | "SALES" | "CASHIER" | "WAREHOUSE";
+        /** Shift */
+        Shift: {
+            /** Branch Id */
+            branch_id: string;
+            /** Cashier Id */
+            cashier_id: string;
+            /** Closed At */
+            closed_at: string | null;
+            /** Confirmed By */
+            confirmed_by: string | null;
+            /** Counted Cash */
+            counted_cash: number | null;
+            /** Expected Cash */
+            expected_cash: number;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Opening Cash */
+            opening_cash: number;
+            /** Proxy Closed By */
+            proxy_closed_by: string | null;
+            /** Proxy Reason */
+            proxy_reason: string | null;
+            /** Settled At */
+            settled_at: string | null;
+            /** Shift Id */
+            shift_id: string;
+            status: components["schemas"]["ShiftStatus"];
+            /** Variance */
+            variance: number | null;
+            /** Variance Reason */
+            variance_reason: string | null;
+            /** Witness Id */
+            witness_id: string | null;
+        };
+        /** ShiftClose */
+        ShiftClose: {
+            /** Counted Cash */
+            counted_cash: number;
+            /** Variance Reason */
+            variance_reason?: string | null;
+        };
+        /**
+         * ShiftDetail
+         * @description Ca kèm kết quả đối soát (CA-03).
+         */
+        ShiftDetail: {
+            /** Branch Id */
+            branch_id: string;
+            /** Cash Collected */
+            cash_collected: number;
+            /** Cash Refunded */
+            cash_refunded: number;
+            /** Cashier Id */
+            cashier_id: string;
+            /** Closed At */
+            closed_at: string | null;
+            /** Confirmed By */
+            confirmed_by: string | null;
+            /** Counted Cash */
+            counted_cash: number | null;
+            /** Electronic */
+            electronic: components["schemas"]["ShiftMethodTotal"][];
+            /** Expected Cash */
+            expected_cash: number;
+            /** Failed */
+            failed: components["schemas"]["Transaction"][];
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Opening Cash */
+            opening_cash: number;
+            /** Pending */
+            pending: components["schemas"]["Transaction"][];
+            /** Proxy Closed By */
+            proxy_closed_by: string | null;
+            /** Proxy Reason */
+            proxy_reason: string | null;
+            /** Settled At */
+            settled_at: string | null;
+            /** Shift Id */
+            shift_id: string;
+            status: components["schemas"]["ShiftStatus"];
+            /** Variance */
+            variance: number | null;
+            /** Variance Reason */
+            variance_reason: string | null;
+            /** Witness Id */
+            witness_id: string | null;
+        };
+        /** ShiftMethodTotal */
+        ShiftMethodTotal: {
+            /** Amount */
+            amount: number;
+            /** Count */
+            count: number;
+            method: components["schemas"]["TxnMethod"];
+            type: components["schemas"]["TxnType"];
+        };
+        /** ShiftOpen */
+        ShiftOpen: {
+            /** Opening Cash */
+            opening_cash: number;
+        };
+        /** ShiftProxyClose */
+        ShiftProxyClose: {
+            /** Counted Cash */
+            counted_cash: number;
+            /** Proxy Reason */
+            proxy_reason: string;
+            /** Variance Reason */
+            variance_reason?: string | null;
+            /** Witness Id */
+            witness_id: string;
+        };
+        /**
+         * ShiftStatus
+         * @enum {string}
+         */
+        ShiftStatus: "OPEN" | "AWAITING_CONFIRMATION" | "SETTLED";
         /**
          * SlipStatus
          * @enum {string}
@@ -1107,6 +1504,50 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** Transaction */
+        Transaction: {
+            /** Amount */
+            amount: number;
+            /** Cash Refund Approved By */
+            cash_refund_approved_by: string | null;
+            /** Cash Refund Reason */
+            cash_refund_reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            method: components["schemas"]["TxnMethod"];
+            /** Order Id */
+            order_id: string;
+            /** Reference Code */
+            reference_code: string | null;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** Return Id */
+            return_id: string | null;
+            /** Shift Id */
+            shift_id: string;
+            status: components["schemas"]["TxnStatus"];
+            /** Txn Id */
+            txn_id: string;
+            type: components["schemas"]["TxnType"];
+        };
+        /**
+         * TxnMethod
+         * @enum {string}
+         */
+        TxnMethod: "CASH" | "TRANSFER" | "CARD";
+        /**
+         * TxnStatus
+         * @enum {string}
+         */
+        TxnStatus: "PENDING" | "SUCCESS" | "FAILED";
+        /**
+         * TxnType
+         * @enum {string}
+         */
+        TxnType: "COLLECT" | "REFUND";
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1178,6 +1619,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurrentUser"];
+                };
+            };
+        };
+    };
+    bank_callback_bank_callback_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-bank-key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankCallback"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1681,6 +2157,37 @@ export interface operations {
             };
         };
     };
+    print_invoice_invoices__invoice_no__print_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_no: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_orders_orders_get: {
         parameters: {
             query?: {
@@ -1842,6 +2349,37 @@ export interface operations {
             };
         };
     };
+    get_invoice_orders__order_id__invoice_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_items_orders__order_id__items_put: {
         parameters: {
             query?: never;
@@ -1864,6 +2402,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Order"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_payment_orders__order_id__payments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
                 };
             };
             /** @description Validation Error */
@@ -2282,6 +2855,222 @@ export interface operations {
             };
         };
     };
+    list_shifts_shifts_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["ShiftStatus"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Shift"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_shift_shifts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShiftOpen"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_shift_shifts_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftDetail"] | null;
+                };
+            };
+        };
+    };
+    get_shift_shifts__shift_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_shift_shifts__shift_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShiftClose"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_shift_shifts__shift_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    proxy_close_shifts__shift_id__proxy_close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShiftProxyClose"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_stock_stock_get: {
         parameters: {
             query?: never;
@@ -2518,6 +3307,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StockLevel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_cash_transactions__txn_id__confirm_cash_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                txn_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconcile_transactions__txn_id__reconcile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                txn_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Reconcile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transaction"];
                 };
             };
             /** @description Validation Error */

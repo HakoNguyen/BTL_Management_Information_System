@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 
 import asyncpg
 from fastapi import FastAPI
-from routers import auth, customers, inventory, orders, products, staff
+from routers import auth, customers, inventory, orders, payments, products, shifts, staff
 from services import auth as auth_service
 
 from common.constants import (
@@ -61,6 +61,8 @@ def create_app() -> FastAPI:
     app.include_router(customers.router)
     app.include_router(inventory.router)
     app.include_router(orders.router)
+    app.include_router(shifts.router)
+    app.include_router(payments.router)
     return app
 
 

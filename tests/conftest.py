@@ -23,10 +23,11 @@ for _p in (str(REPO_ROOT), str(REPO_ROOT / "api"), str(TESTS_DIR)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from fixtures import TEST_SECRET  # noqa: E402
+from fixtures import BANK_TEST_KEY, TEST_SECRET  # noqa: E402
 from main import create_app  # noqa: E402
 
 from common import clock  # noqa: E402
+from common.constants import ENV_BANK_KEY, ENV_BANK_URL  # noqa: E402
 from db.migrate import MIGRATIONS_DIR, migrate  # noqa: E402
 
 
@@ -118,6 +119,13 @@ async def conn(pool: asyncpg.Pool) -> AsyncIterator[asyncpg.Connection]:
 def _unfreeze_clock() -> Iterator[None]:
     yield
     clock.freeze(None)
+
+
+@pytest.fixture(autouse=True)
+def _bank_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Không test nào gọi cổng thật: bỏ BANK_URL; test đóng vai cổng bằng khóa BANK_TEST_KEY."""
+    monkeypatch.delenv(ENV_BANK_URL, raising=False)
+    monkeypatch.setenv(ENV_BANK_KEY, BANK_TEST_KEY)
 
 
 @pytest.fixture
