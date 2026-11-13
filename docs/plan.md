@@ -4,7 +4,7 @@ File này cho biết dự án đang ở đâu và việc tiếp theo là gì. Đ
 
 ## 1. Tiến độ
 
-**Vòng tiếp theo: 10 (giao diện), lượt NV kho.** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
+**Vòng tiếp theo: 10 (giao diện), lượt Quản lý cửa hàng.** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
 dùng dữ liệu và hàm của vòng trước.
 
 | Vòng | Module | Nhánh | Chức năng | Quy tắc | Tình huống KT | Trạng thái |
@@ -19,7 +19,7 @@ dùng dữ liệu và hàm của vòng trước.
 | 7 | `returns`, `customers` | `returns/return-refund` | 3.4 phần phiếu trả và hoàn tiền; 2.4 | TH-01 đến TH-05, KH-04 | KT-08, KT-09 | **xong** (13/11/2026) |
 | 8 | `workers/closing`, `inventory`, `reports` | `closing/end-of-day-replenishment` | Sự kiện giờ đóng cửa; 4.4; 5.4 | BH-05, TH-03, TK-06 | KT-07, KT-14 | **xong** (13/11/2026) |
 | 9 | `reports` | `reports/revenue-stock-staff` | 5.1, 5.2, 5.3, 5.5 | DT-01 đến DT-05 | KT-10, 13, 15 | **xong** (13/11/2026) |
-| 10 | `web` | `web/role-screens` | Giao diện theo 5 vai trò; dữ liệu demo | Ma trận 2.2 | chạy tay luồng P1–P5 | đang làm: lượt Trụ sở xong (13/11/2026, nhánh `web/hq-screens`); lượt NVBH xong (13/11/2026, nhánh `web/sales-screens`); lượt Thu ngân xong (13/11/2026, nhánh `web/cashier-screens`) |
+| 10 | `web` | `web/role-screens` | Giao diện theo 5 vai trò; dữ liệu demo | Ma trận 2.2 | chạy tay luồng P1–P5 | đang làm: lượt Trụ sở xong (13/11/2026, nhánh `web/hq-screens`); lượt NVBH xong (13/11/2026, nhánh `web/sales-screens`); lượt Thu ngân xong (13/11/2026, nhánh `web/cashier-screens`); lượt NV kho xong (13/11/2026, nhánh `web/warehouse-screens`) |
 
 Xong một vòng thì sửa cột "Trạng thái" ở bảng này, dòng "Vòng tiếp theo" ở trên, và cột "Trạng thái" của các
 tình huống KT trong [tests.md](tests.md).
@@ -214,6 +214,8 @@ Giả định của người dựng khung, **chưa được người dùng xác 
   từng bán (DT-05). Giá trị trung bình đơn làm tròn xuống. Tổng chênh lệch tiền ca tính theo ca có `closed_at`
   trong kỳ; số còn phải hoàn tính tại cuối kỳ. Chậm bán (5.2) xét tồn hiện tại của cặp chi nhánh – sản phẩm Đang
   bán. Biến động 5.3 gom theo chi nhánh, loại, lý do, sản phẩm. Các con số khác chi tiết ở [api.md](api.md) nhóm 5.
+- Vòng 10 (lượt NV kho): trang Tồn kho chi nhánh lấy phần `lines` của `GET /reports/stock` (kỳ hôm nay), vì
+  `GET /stock` không có mức tồn so ngưỡng và giao diện không tự so (ma trận 2.2: NV kho xem 4.1 qua 4.4, 5.3).
 
 ## 8. Việc hoãn có chủ đích
 

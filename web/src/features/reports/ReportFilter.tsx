@@ -10,7 +10,7 @@ import { dateTime } from "../../format";
 export type ReportParams = { from: string; to: string; branch_id?: string };
 
 // Ngày hôm nay theo giờ Việt Nam, dạng YYYY-MM-DD, làm kỳ mặc định
-const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+export const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
 export function ReportFilter<T extends ReportParams>(props: {
   onSubmit: (params: T) => void;

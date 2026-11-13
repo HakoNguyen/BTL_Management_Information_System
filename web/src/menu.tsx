@@ -4,11 +4,15 @@ import type { ReactNode } from "react";
 import type { Role } from "./api/client";
 import { CustomersPage } from "./features/customers/CustomersPage";
 import { HomePage } from "./features/home/HomePage";
+import { ReplenishmentPage } from "./features/inventory/ReplenishmentPage";
+import { StockPage } from "./features/inventory/StockPage";
+import { StockSlipsPage } from "./features/inventory/StockSlipsPage";
 import { OrdersPage } from "./features/orders/OrdersPage";
 import { InvoicesPage } from "./features/payments/InvoicesPage";
 import { PaymentsPage } from "./features/payments/PaymentsPage";
 import { ProductGroupsPage } from "./features/products/ProductGroupsPage";
 import { ProductsPage } from "./features/products/ProductsPage";
+import { LowStockReportPage } from "./features/reports/LowStockReportPage";
 import { ProductSalesReportPage } from "./features/reports/ProductSalesReportPage";
 import { RevenueReportPage } from "./features/reports/RevenueReportPage";
 import { StaffSalesReportPage } from "./features/reports/StaffSalesReportPage";
@@ -34,7 +38,7 @@ export const MENU: MenuItem[] = [
   { path: "/products", label: "Sản phẩm", roles: ["HQ"], element: <ProductsPage /> },
   { path: "/reports/revenue", label: "Doanh thu", roles: ["HQ"], element: <RevenueReportPage /> },
   { path: "/reports/products", label: "Sản phẩm bán", roles: ["HQ"], element: <ProductSalesReportPage /> },
-  { path: "/reports/stock", label: "Tồn kho", roles: ["HQ"], element: <StockReportPage /> },
+  { path: "/reports/stock", label: "Báo cáo tồn kho", roles: ["HQ", "WAREHOUSE"], element: <StockReportPage /> },
   { path: "/reports/staff-sales", label: "Doanh số nhân viên", roles: ["HQ", "SALES"], element: <StaffSalesReportPage /> },
   { path: "/customers", label: "Khách hàng", roles: ["SALES"], element: <CustomersPage /> },
   { path: "/orders", label: "Đơn hàng", roles: ["SALES"], element: <OrdersPage /> },
@@ -42,6 +46,10 @@ export const MENU: MenuItem[] = [
   { path: "/shifts", label: "Ca thu ngân", roles: ["CASHIER"], element: <ShiftsPage /> },
   { path: "/payments", label: "Thu tiền", roles: ["CASHIER"], element: <PaymentsPage /> },
   { path: "/invoices", label: "Hóa đơn", roles: ["CASHIER"], element: <InvoicesPage /> },
+  { path: "/stock", label: "Tồn kho chi nhánh", roles: ["WAREHOUSE"], element: <StockPage /> },
+  { path: "/stock-slips", label: "Phiếu kho", roles: ["WAREHOUSE"], element: <StockSlipsPage /> },
+  { path: "/replenishment-requests", label: "Yêu cầu bổ sung", roles: ["WAREHOUSE"], element: <ReplenishmentPage /> },
+  { path: "/reports/low-stock", label: "Cảnh báo tồn", roles: ["WAREHOUSE"], element: <LowStockReportPage /> },
   { path: "/refunds", label: "Hoàn tiền", roles: ["CASHIER"], element: <RefundsPage /> },
 ];
 

@@ -62,7 +62,7 @@ export function ItemsField() {
       rules={[
         {
           validator: async (_, items) => {
-            if (!items?.length) throw new Error("Đơn cần ít nhất một dòng");
+            if (!items?.length) throw new Error("Cần ít nhất một dòng");
           },
         },
       ]}

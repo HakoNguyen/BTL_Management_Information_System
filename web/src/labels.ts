@@ -75,6 +75,17 @@ export const SLIP_TYPE_LABEL: Record<Schemas["SlipType"], string> = {
   ADJUST_DOWN: "Điều chỉnh giảm",
 };
 
+export const SLIP_STATUS_LABEL: Record<Schemas["SlipStatus"], string> = {
+  PENDING: "Chờ xử lý",
+  POSTED: "Đã ghi nhận",
+  CANCELLED: "Đã hủy",
+};
+
+export const REPLENISH_TYPE_LABEL: Record<Schemas["ReplenishType"], string> = {
+  TRANSFER: "Điều chuyển (kho tổng)",
+  SUPPLIER: "Nhập NCC",
+};
+
 export const ORDER_STATUS_LABEL: Record<Schemas["OrderStatus"], string> = {
   DRAFT: "Đang lập",
   AWAITING_PAYMENT: "Chờ thanh toán",
