@@ -64,12 +64,12 @@ Mỗi test assert đủ mọi ý trong cột "Kết quả kỳ vọng" của tì
 | KT-07 | Cuối ngày | `tests/orders/test_kt07_cuoi_ngay.py` | 8 | xanh |
 | KT-08 | Trả hàng tốt và lỗi | `tests/returns/test_kt08_tra_hang.py` | 7 | xanh |
 | KT-09 | Hoàn thẻ thất bại | `tests/returns/test_kt09_hoan_the_that_bai.py` | 7 | xanh |
-| KT-10 | Bán, trả, hoàn khác ngày | `tests/reports/test_kt10_khac_ngay.py` | 9 | chưa viết |
+| KT-10 | Bán, trả, hoàn khác ngày | `tests/reports/test_kt10_khac_ngay.py` | 9 | xanh |
 | KT-11 | Đối soát ca | `tests/shifts/test_kt11_doi_soat_ca.py` | 6 | xanh |
 | KT-12 | Nhập nhầm và nhập trùng | `tests/inventory/test_kt12_nhap_nham.py` | 4 | xanh |
-| KT-13 | Ngừng bán và đóng chi nhánh | `tests/staff/test_kt13_dong_chi_nhanh.py` | 9 | chưa viết |
+| KT-13 | Ngừng bán và đóng chi nhánh | `tests/staff/test_kt13_dong_chi_nhanh.py` | 9 | xanh |
 | KT-14 | Ngưỡng và yêu cầu bổ sung | `tests/inventory/test_kt14_nguong.py` | 8 | xanh |
-| KT-15 | Phê duyệt và lịch sử | `tests/reports/test_kt15_phe_duyet.py` | 9 | chưa viết |
+| KT-15 | Phê duyệt và lịch sử | `tests/reports/test_kt15_phe_duyet.py` | 9 | xanh |
 | KT-16 | Thu ngân vắng đột xuất | `tests/shifts/test_kt16_thu_ngan_vang.py` | 6 | xanh |
 
 Khi một tình huống xanh, đổi cột "Trạng thái" thành "xanh" trong cùng thay đổi đó.

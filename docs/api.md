@@ -369,6 +369,34 @@ tính lúc gọi, không lưu (quyết định 6 ở [plan.md](plan.md) mục 7)
 | `LowStockLine` | `product_id`, `name`, `quantity` (tồn, cặp chưa có bản ghi là 0), `min_level` (null ở danh sách Chưa thiết lập) |
 | `LowStockReport` (response của `GET /reports/low-stock`) | `branch_id`, `generated_at`, `below_min` (`LowStockLine[]`: đã đặt ngưỡng và tồn < ngưỡng), `not_set` (`LowStockLine[]`: Chưa thiết lập ngưỡng) |
 
+Trường 5.1, 5.2, 5.3, 5.5 (chốt ở vòng 9). Chỉ đọc, tính lúc gọi từ chứng từ gốc, không lưu.
+
+- Tham số: `from`, `to` bắt buộc, kiểu ngày `YYYY-MM-DD`, tính cả hai đầu theo giờ Việt Nam (kỳ là
+  `[from 00:00, to + 1 ngày 00:00)`); `from` > `to` là `VALIDATION_ERROR`. `branch_id` tùy chọn: HQ bỏ trống là
+  toàn chuỗi (gồm cả chi nhánh Ngừng hoạt động, NV-04); vai trò khác bỏ trống hoặc gửi đúng chi nhánh mình, gửi
+  chi nhánh khác là `FORBIDDEN` K-01.
+- Kỳ trước: cùng số ngày, liền ngay trước `from`.
+- Ba mốc thời gian (đặc tả 4.5): bán theo `orders.completed_at`; hàng trả theo `return_slips.decided_at` của phiếu
+  `APPROVED`; tiền thu, hoàn theo `transactions.resolved_at` của giao dịch `SUCCESS`. Doanh thu, hàng trả, số đơn
+  hủy ghi cho `branch_id`, `created_by` của đơn gốc (DT-05). Giá trị hàng trả = Σ (tốt + lỗi) × đơn giá chốt (TH-04).
+- Mọi report có đầu: `branch_id` (null = toàn chuỗi), `from_date`, `to_date`, `generated_at`.
+
+| Model | Trường |
+| --- | --- |
+| `MoneyByMethod` | `type` (`COLLECT`/`REFUND`), `method`, `amount` |
+| `CountByReason` | `reason`, `count` |
+| `RevenueSummary` | `branch_id` (null ở dòng tổng), `order_count`, `gross_revenue` (DT-01), `returns_value` (DT-02), `net_revenue` (DT-03, có thể âm), `average_order_value` (`gross_revenue // order_count`, null khi `order_count` = 0: "Không có dữ liệu"), `registered_revenue`, `walk_in_revenue` (doanh thu gộp của khách có hồ sơ và KHLE), `cancellations` (`CountByReason[]`: đơn có `cancelled_at` trong kỳ), `shift_variance` (Σ chênh lệch CA-02 của ca có `closed_at` trong kỳ), `payments` (`MoneyByMethod[]`, DT-04), `outstanding_refunds` (số còn phải hoàn lúc cuối kỳ: Σ giá trị phiếu `APPROVED` có `decided_at` < cuối kỳ chưa có giao dịch Hoàn `SUCCESS` với `resolved_at` < cuối kỳ) |
+| `RevenueReport` (`GET /reports/revenue?from&to&branch_id`) | đầu chung, `branches` (`RevenueSummary[]` mỗi chi nhánh trong phạm vi, theo `branch_id`), `total` (`RevenueSummary` = tổng các dòng `branches`), `previous` (`RevenueSummary` tổng của kỳ trước) |
+| `ProductSalesLine` | `product_id`, `name`, `group_id` (nhóm hiện tại trong D1, DT-05), `sold_qty`, `returned_qty`, `net_qty`, `net_value` (giá trị bán − giá trị trả), `rank`, `previous_rank` (null khi kỳ trước không phát sinh) |
+| `GroupSalesLine` | `group_id`, `name`, `sold_qty`, `returned_qty`, `net_qty`, `net_value` |
+| `SlowMovingLine` | `branch_id`, `product_id`, `name`, `quantity` (tồn hiện tại) |
+| `ProductSalesReport` (`GET /reports/products?from&to&branch_id&rank_by`) | đầu chung, `rank_by` (`QUANTITY` mặc định hoặc `VALUE`: xếp theo `net_qty` hoặc `net_value` giảm dần, bằng nhau thì theo `product_id`), `products` (`ProductSalesLine[]` có bán hoặc trả trong kỳ, sắp theo `rank`; top 10 là 10 dòng đầu), `groups` (`GroupSalesLine[]`), `slow_moving` (`SlowMovingLine[]`: sản phẩm `ON_SALE`, tồn > 0 tại chi nhánh, không bán được trong kỳ tại chi nhánh đó) |
+| `StockReportLine` | `branch_id`, `product_id`, `name`, `quantity`, `available` (TK-01), `min_level`, `level_status` (`BELOW_MIN`: tồn < ngưỡng; `OK`; `NOT_SET`: Chưa thiết lập, TK-05) |
+| `StockMovementLine` | `branch_id`, `type` (`OUT_DISPOSAL`, `ADJUST_UP`, `ADJUST_DOWN`), `reason`, `product_id`, `quantity` (Σ phiếu `POSTED` có `finalized_at` trong kỳ) |
+| `StockReport` (`GET /reports/stock?from&to&branch_id`) | đầu chung, `lines` (`StockReportLine[]`: mọi sản phẩm tại mỗi chi nhánh trong phạm vi, tại thời điểm lập), `movements` (`StockMovementLine[]`) |
+| `StaffSalesLine` | `branch_id`, `employee_id`, `full_name`, `order_count`, `gross_revenue`, `returns_value`, `net_revenue`, `cancelled_count`, `rank` (trong chi nhánh theo `net_revenue` giảm dần, bằng nhau thì theo `employee_id`), `previous_net_revenue` |
+| `StaffSalesReport` (`GET /reports/staff-sales?from&to&branch_id`) | đầu chung, `lines` (`StaffSalesLine[]`: mỗi cặp chi nhánh – người lập có phát sinh trong kỳ, sắp theo `branch_id`, `rank`). BH chỉ thấy dòng của mình ở mọi chi nhánh (hạng vẫn tính trong cả chi nhánh), `branch_id` bị bỏ qua |
+
 ## 5. Hàm giao giữa các module
 
 Mỗi kho chỉ do nhóm sở hữu ghi (đặc tả 6.1). Module khác muốn làm thay đổi kho đó thì gọi hàm dưới đây, truyền
