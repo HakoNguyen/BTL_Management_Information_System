@@ -6,6 +6,8 @@ liệu dẫn xuất (docs/db.md mục 6), tính từ `transactions` mỗi lần 
 
 from __future__ import annotations
 
+from datetime import datetime
+
 import asyncpg
 
 from common import clock
@@ -110,6 +112,24 @@ async def list_shifts(
         status,
     )
     return [Shift(**row) for row in rows]
+
+
+async def variance_by_branch(
+    conn: asyncpg.Connection, branch_id: str | None, start: datetime, end: datetime
+) -> dict[str, int]:
+    """Cho 5.1: Σ chênh lệch (CA-02) của các ca đóng trong [start, end), theo chi nhánh."""
+    rows = await _fetch(
+        conn,
+        "($5::text IS NULL OR s.branch_id = $5) AND s.counted_cash IS NOT NULL"
+        " AND s.closed_at >= $6 AND s.closed_at < $7",
+        branch_id,
+        start,
+        end,
+    )
+    totals: dict[str, int] = {}
+    for row in rows:
+        totals[row["branch_id"]] = totals.get(row["branch_id"], 0) + row["variance"]
+    return totals
 
 
 async def get_shift(conn: asyncpg.Connection, shift_id: str, user: CurrentUser) -> ShiftDetail:

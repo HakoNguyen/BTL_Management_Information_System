@@ -625,6 +625,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reports/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Products */
+        get: operations["products_reports_products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Revenue */
+        get: operations["revenue_reports_revenue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/staff-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Staff Sales */
+        get: operations["staff_sales_reports_staff_sales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stock */
+        get: operations["stock_reports_stock_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/returns": {
         parameters: {
             query?: never;
@@ -1092,6 +1160,13 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** CountByReason */
+        CountByReason: {
+            /** Count */
+            count: number;
+            /** Reason */
+            reason: string;
+        };
         /**
          * CurrentUser
          * @description Thông tin phiên đăng nhập: dùng để kiểm tra quyền theo vai trò và chi nhánh (K-01).
@@ -1205,6 +1280,21 @@ export interface components {
             /** Phone */
             phone?: string | null;
         };
+        /** GroupSalesLine */
+        GroupSalesLine: {
+            /** Group Id */
+            group_id: string;
+            /** Name */
+            name: string;
+            /** Net Qty */
+            net_qty: number;
+            /** Net Value */
+            net_value: number;
+            /** Returned Qty */
+            returned_qty: number;
+            /** Sold Qty */
+            sold_qty: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1266,6 +1356,12 @@ export interface components {
             /** Unit Price */
             unit_price: number;
         };
+        /**
+         * LevelStatus
+         * @description Tình trạng so ngưỡng ở 5.3 (TK-05): dẫn xuất, không lưu.
+         * @enum {string}
+         */
+        LevelStatus: "BELOW_MIN" | "OK" | "NOT_SET";
         /** LoginRequest */
         LoginRequest: {
             /** Password */
@@ -1311,6 +1407,13 @@ export interface components {
         MinLevelChange: {
             /** Min Level */
             min_level: number | null;
+        };
+        /** MoneyByMethod */
+        MoneyByMethod: {
+            /** Amount */
+            amount: number;
+            method: components["schemas"]["TxnMethod"];
+            type: components["schemas"]["TxnType"];
         };
         /** Order */
         Order: {
@@ -1463,6 +1566,54 @@ export interface components {
             /** Name */
             name?: string;
         };
+        /** ProductSalesLine */
+        ProductSalesLine: {
+            /** Group Id */
+            group_id: string;
+            /** Name */
+            name: string;
+            /** Net Qty */
+            net_qty: number;
+            /** Net Value */
+            net_value: number;
+            /** Previous Rank */
+            previous_rank: number | null;
+            /** Product Id */
+            product_id: string;
+            /** Rank */
+            rank: number;
+            /** Returned Qty */
+            returned_qty: number;
+            /** Sold Qty */
+            sold_qty: number;
+        };
+        /** ProductSalesReport */
+        ProductSalesReport: {
+            /** Branch Id */
+            branch_id: string | null;
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Groups */
+            groups: components["schemas"]["GroupSalesLine"][];
+            /** Products */
+            products: components["schemas"]["ProductSalesLine"][];
+            rank_by: components["schemas"]["RankBy"];
+            /** Slow Moving */
+            slow_moving: components["schemas"]["SlowMovingLine"][];
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
+        };
         /**
          * ProductStatus
          * @enum {string}
@@ -1481,6 +1632,12 @@ export interface components {
             /** Unit */
             unit?: string;
         };
+        /**
+         * RankBy
+         * @description Tiêu chí xếp hạng top 10 ở 5.2.
+         * @enum {string}
+         */
+        RankBy: "QUANTITY" | "VALUE";
         /** Reconcile */
         Reconcile: {
             /** Reference Code */
@@ -1600,6 +1757,57 @@ export interface components {
          * @enum {string}
          */
         ReturnStatus: "PENDING" | "APPROVED" | "REJECTED";
+        /** RevenueReport */
+        RevenueReport: {
+            /** Branch Id */
+            branch_id: string | null;
+            /** Branches */
+            branches: components["schemas"]["RevenueSummary"][];
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            previous: components["schemas"]["RevenueSummary"];
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
+            total: components["schemas"]["RevenueSummary"];
+        };
+        /** RevenueSummary */
+        RevenueSummary: {
+            /** Average Order Value */
+            average_order_value: number | null;
+            /** Branch Id */
+            branch_id: string | null;
+            /** Cancellations */
+            cancellations: components["schemas"]["CountByReason"][];
+            /** Gross Revenue */
+            gross_revenue: number;
+            /** Net Revenue */
+            net_revenue: number;
+            /** Order Count */
+            order_count: number;
+            /** Outstanding Refunds */
+            outstanding_refunds: number;
+            /** Payments */
+            payments: components["schemas"]["MoneyByMethod"][];
+            /** Registered Revenue */
+            registered_revenue: number;
+            /** Returns Value */
+            returns_value: number;
+            /** Shift Variance */
+            shift_variance: number;
+            /** Walk In Revenue */
+            walk_in_revenue: number;
+        };
         /**
          * Role
          * @enum {string}
@@ -1739,12 +1947,120 @@ export interface components {
          * @enum {string}
          */
         SlipType: "IN_WAREHOUSE" | "IN_SUPPLIER" | "IN_RETURN" | "ADJUST_UP" | "OUT_SALE" | "OUT_DISPOSAL" | "OUT_TO_WAREHOUSE" | "ADJUST_DOWN";
+        /** SlowMovingLine */
+        SlowMovingLine: {
+            /** Branch Id */
+            branch_id: string;
+            /** Name */
+            name: string;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /** StaffSalesLine */
+        StaffSalesLine: {
+            /** Branch Id */
+            branch_id: string;
+            /** Cancelled Count */
+            cancelled_count: number;
+            /** Employee Id */
+            employee_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Gross Revenue */
+            gross_revenue: number;
+            /** Net Revenue */
+            net_revenue: number;
+            /** Order Count */
+            order_count: number;
+            /** Previous Net Revenue */
+            previous_net_revenue: number;
+            /** Rank */
+            rank: number;
+            /** Returns Value */
+            returns_value: number;
+        };
+        /** StaffSalesReport */
+        StaffSalesReport: {
+            /** Branch Id */
+            branch_id: string | null;
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Lines */
+            lines: components["schemas"]["StaffSalesLine"][];
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
+        };
         /** StockLevel */
         StockLevel: {
             /** Available */
             available: number;
             /** Min Level */
             min_level: number | null;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /** StockMovementLine */
+        StockMovementLine: {
+            /** Branch Id */
+            branch_id: string;
+            /** Product Id */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+            /** Reason */
+            reason: string;
+            type: components["schemas"]["SlipType"];
+        };
+        /** StockReport */
+        StockReport: {
+            /** Branch Id */
+            branch_id: string | null;
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Lines */
+            lines: components["schemas"]["StockReportLine"][];
+            /** Movements */
+            movements: components["schemas"]["StockMovementLine"][];
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
+        };
+        /** StockReportLine */
+        StockReportLine: {
+            /** Available */
+            available: number;
+            /** Branch Id */
+            branch_id: string;
+            level_status: components["schemas"]["LevelStatus"];
+            /** Min Level */
+            min_level: number | null;
+            /** Name */
+            name: string;
             /** Product Id */
             product_id: string;
             /** Quantity */
@@ -3265,6 +3581,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LowStockReport"];
+                };
+            };
+        };
+    };
+    products_reports_products_get: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                branch_id?: string | null;
+                rank_by?: components["schemas"]["RankBy"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductSalesReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revenue_reports_revenue_get: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                branch_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevenueReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    staff_sales_reports_staff_sales_get: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                branch_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffSalesReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stock_reports_stock_get: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                branch_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

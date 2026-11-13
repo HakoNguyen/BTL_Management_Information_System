@@ -4,7 +4,7 @@ File này cho biết dự án đang ở đâu và việc tiếp theo là gì. Đ
 
 ## 1. Tiến độ
 
-**Vòng tiếp theo: 9 (báo cáo).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
+**Vòng tiếp theo: 10 (giao diện).** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
 dùng dữ liệu và hàm của vòng trước.
 
 | Vòng | Module | Nhánh | Chức năng | Quy tắc | Tình huống KT | Trạng thái |
@@ -18,7 +18,7 @@ dùng dữ liệu và hàm của vòng trước.
 | 6 | `shifts`, `payments`, `bank-mock` | `payments/shifts-collection-invoice` | 3.5, 3.2, 3.3 | CA-01 đến CA-04, TT-01 đến TT-04 | KT-01, 04, 05, 06, 11, 16 | **xong** (13/11/2026) |
 | 7 | `returns`, `customers` | `returns/return-refund` | 3.4 phần phiếu trả và hoàn tiền; 2.4 | TH-01 đến TH-05, KH-04 | KT-08, KT-09 | **xong** (13/11/2026) |
 | 8 | `workers/closing`, `inventory`, `reports` | `closing/end-of-day-replenishment` | Sự kiện giờ đóng cửa; 4.4; 5.4 | BH-05, TH-03, TK-06 | KT-07, KT-14 | **xong** (13/11/2026) |
-| 9 | `reports` | `reports/revenue-stock-staff` | 5.1, 5.2, 5.3, 5.5 | DT-01 đến DT-05 | KT-10, 13, 15 | chưa làm |
+| 9 | `reports` | `reports/revenue-stock-staff` | 5.1, 5.2, 5.3, 5.5 | DT-01 đến DT-05 | KT-10, 13, 15 | **xong** (13/11/2026) |
 | 10 | `web` | `web/role-screens` | Giao diện theo 5 vai trò; dữ liệu demo | Ma trận 2.2 | chạy tay luồng P1–P5 | chưa làm |
 
 Xong một vòng thì sửa cột "Trạng thái" ở bảng này, dòng "Vòng tiếp theo" ở trên, và cột "Trạng thái" của các
@@ -209,6 +209,11 @@ Giả định của người dựng khung, **chưa được người dùng xác 
 - Vòng 8: 5.4 so `stock.quantity` (tồn, theo TK-05) chứ không so tồn khả dụng; mục Chưa thiết lập chỉ gồm sản phẩm
   Đang bán. 4.4 không kiểm tra chi nhánh Ngừng hoạt động (TK-06 không nêu) và response không kèm tồn, ngưỡng
   (giao diện lấy từ `GET /stock`).
+- Vòng 9: `from`, `to` là ngày, tính cả hai đầu theo giờ Việt Nam; kỳ trước cùng số ngày, liền trước `from`. QL,
+  NV kho gửi `branch_id` khác chi nhánh mình bị `FORBIDDEN` K-01. NVBH xem 5.5 thấy dòng của mình ở mọi chi nhánh
+  từng bán (DT-05). Giá trị trung bình đơn làm tròn xuống. Tổng chênh lệch tiền ca tính theo ca có `closed_at`
+  trong kỳ; số còn phải hoàn tính tại cuối kỳ. Chậm bán (5.2) xét tồn hiện tại của cặp chi nhánh – sản phẩm Đang
+  bán. Biến động 5.3 gom theo chi nhánh, loại, lý do, sản phẩm. Các con số khác chi tiết ở [api.md](api.md) nhóm 5.
 
 ## 8. Việc hoãn có chủ đích
 

@@ -15,8 +15,10 @@ from common.constants import (
     AccountStatus,
     BranchStatus,
     EmployeeStatus,
+    LevelStatus,
     OrderStatus,
     ProductStatus,
+    RankBy,
     RefundStatus,
     ReplenishType,
     ReturnStatus,
@@ -510,3 +512,122 @@ class LowStockReport(BaseModel):
     generated_at: datetime
     below_min: list[LowStockLine]
     not_set: list[LowStockLine]
+
+
+# ---------------------------------------------------------------- Nhóm 5 (vòng 9)
+# Tính lúc gọi từ chứng từ gốc, không lưu (docs/db.md mục 6). Doanh thu, hàng trả ghi cho chi nhánh
+# và người lập của đơn gốc (DT-05).
+
+
+class ReportHeader(BaseModel):
+    branch_id: str | None  # null = toàn chuỗi
+    from_date: date
+    to_date: date
+    generated_at: datetime
+
+
+class MoneyByMethod(BaseModel):
+    type: TxnType
+    method: TxnMethod
+    amount: int
+
+
+class CountByReason(BaseModel):
+    reason: str
+    count: int
+
+
+class RevenueSummary(BaseModel):
+    branch_id: str | None  # null ở dòng tổng
+    order_count: int
+    gross_revenue: int  # DT-01
+    returns_value: int  # DT-02
+    net_revenue: int  # DT-03, có thể âm
+    average_order_value: int | None  # null = Không có dữ liệu
+    registered_revenue: int
+    walk_in_revenue: int
+    cancellations: list[CountByReason]
+    shift_variance: int  # CA-02
+    payments: list[MoneyByMethod]  # DT-04
+    outstanding_refunds: int  # số còn phải hoàn lúc cuối kỳ (DT-04)
+
+
+class RevenueReport(ReportHeader):
+    branches: list[RevenueSummary]
+    total: RevenueSummary
+    previous: RevenueSummary
+
+
+class ProductSalesLine(BaseModel):
+    product_id: str
+    name: str
+    group_id: str  # nhóm hiện tại trong D1 (DT-05)
+    sold_qty: int
+    returned_qty: int
+    net_qty: int
+    net_value: int
+    rank: int
+    previous_rank: int | None
+
+
+class GroupSalesLine(BaseModel):
+    group_id: str
+    name: str
+    sold_qty: int
+    returned_qty: int
+    net_qty: int
+    net_value: int
+
+
+class SlowMovingLine(BaseModel):
+    branch_id: str
+    product_id: str
+    name: str
+    quantity: int
+
+
+class ProductSalesReport(ReportHeader):
+    rank_by: RankBy
+    products: list[ProductSalesLine]  # sắp theo rank; top 10 là 10 dòng đầu
+    groups: list[GroupSalesLine]
+    slow_moving: list[SlowMovingLine]
+
+
+class StockReportLine(BaseModel):
+    branch_id: str
+    product_id: str
+    name: str
+    quantity: int
+    available: int  # TK-01
+    min_level: int | None
+    level_status: LevelStatus  # TK-05
+
+
+class StockMovementLine(BaseModel):
+    branch_id: str
+    type: SlipType
+    reason: str
+    product_id: str
+    quantity: int
+
+
+class StockReport(ReportHeader):
+    lines: list[StockReportLine]
+    movements: list[StockMovementLine]
+
+
+class StaffSalesLine(BaseModel):
+    branch_id: str
+    employee_id: str
+    full_name: str
+    order_count: int
+    gross_revenue: int
+    returns_value: int
+    net_revenue: int
+    cancelled_count: int
+    rank: int  # trong chi nhánh theo net_revenue
+    previous_net_revenue: int
+
+
+class StaffSalesReport(ReportHeader):
+    lines: list[StaffSalesLine]

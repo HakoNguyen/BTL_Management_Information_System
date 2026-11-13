@@ -105,6 +105,21 @@ class ReplenishType(StrEnum):
     SUPPLIER = "SUPPLIER"  # Nhập NCC (giao thẳng)
 
 
+class LevelStatus(StrEnum):
+    """Tình trạng so ngưỡng ở 5.3 (TK-05): dẫn xuất, không lưu."""
+
+    BELOW_MIN = "BELOW_MIN"  # Dưới ngưỡng: tồn < ngưỡng
+    OK = "OK"  # Đạt ngưỡng
+    NOT_SET = "NOT_SET"  # Chưa thiết lập
+
+
+class RankBy(StrEnum):
+    """Tiêu chí xếp hạng top 10 ở 5.2."""
+
+    QUANTITY = "QUANTITY"  # Lượng thuần
+    VALUE = "VALUE"  # Giá trị thuần
+
+
 class ErrorCode(StrEnum):
     VALIDATION_ERROR = "VALIDATION_ERROR"  # dữ liệu vào sai định dạng
     UNAUTHORIZED = "UNAUTHORIZED"  # chưa đăng nhập, sai mật khẩu, phiên hết hạn
