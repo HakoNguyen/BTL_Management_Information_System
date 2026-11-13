@@ -41,9 +41,11 @@ Khai báo trong `tests/fixtures.py`; test, dữ liệu demo và tài liệu dùn
 | `SALES_ID` | `NV-BH1` | Nhân viên bán hàng CN1 |
 | `CASHIER_ID` | `NV-TN1` | Thu ngân CN1 |
 | `WAREHOUSE_ID` | `NV-KHO1` | Nhân viên kho CN1 |
+| `GROUP_ID` | `NHOM1` | Nhóm mặc định của `seed_product` |
 | `TEST_PASSWORD` | mật khẩu chung của nhân viên seed | Tên đăng nhập = mã nhân viên viết thường |
 
-Sản phẩm mẫu theo đặc tả mục 7: A giá 100.000; B, C, D thêm khi vòng 2 viết `seed_product`.
+Sản phẩm mẫu theo đặc tả mục 7: `seed_product(conn, "A")` giá 100.000, kèm bản ghi lịch sử giá đầu tiên do
+`HQ_ID` lập lúc `SEED_AT` (cần `seed_staff` trước); B, C, D dùng cùng hàm với mã khác.
 
 ## 3. Tình huống KT-01 đến KT-16
 

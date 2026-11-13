@@ -42,6 +42,8 @@ SALES_ID = "NV-BH1"
 CASHIER_ID = "NV-TN1"
 WAREHOUSE_ID = "NV-KHO1"
 
+GROUP_ID = "NHOM1"
+
 
 async def seed_branch(
     conn: asyncpg.Connection, branch_id: str = BRANCH_1, closing_time: time = time(22, 0)
@@ -111,21 +113,56 @@ SEED_AT = datetime(2026, 1, 1, 9, 0, tzinfo=VN_TZ)
 
 
 async def seed_product(
-    conn: asyncpg.Connection, product_id: str = "A", price: int = 100_000
+    conn: asyncpg.Connection,
+    product_id: str = "A",
+    price: int = 100_000,
+    group_id: str = GROUP_ID,
 ) -> str:
-    # shortcut: chưa ghi lịch sử giá (SP-02); vòng 2 thay bằng hàm đầy đủ
+    """Sản phẩm Đang bán kèm lịch sử giá đầu tiên do HQ_ID lập (SP-02); cần seed_staff trước."""
     await conn.execute(
-        "INSERT INTO product_groups (group_id, name) VALUES ('NHOM1', 'Nhóm mẫu')"
-        " ON CONFLICT DO NOTHING"
+        "INSERT INTO product_groups (group_id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        group_id,
+        f"Nhóm {group_id}",
     )
     await conn.execute(
         "INSERT INTO products (product_id, name, group_id, unit, current_price)"
-        " VALUES ($1, $2, 'NHOM1', 'cái', $3)",
+        " VALUES ($1, $2, $3, 'cái', $4)",
         product_id,
         f"Sản phẩm {product_id}",
+        group_id,
         price,
     )
+    await conn.execute(
+        "INSERT INTO price_history (product_id, effective_at, price, changed_by)"
+        " VALUES ($1, $2, $3, $4)",
+        product_id,
+        SEED_AT,
+        price,
+        HQ_ID,
+    )
     return product_id
+
+
+async def seed_order_item(
+    conn: asyncpg.Connection, order_id: str, product_id: str, quantity: int = 1
+) -> None:
+    await conn.execute(
+        "INSERT INTO order_items (order_id, product_id, quantity) VALUES ($1, $2, $3)",
+        order_id,
+        product_id,
+        quantity,
+    )
+
+
+async def seed_stock_slip_item(
+    conn: asyncpg.Connection, slip_id: str, product_id: str, quantity: int = 1
+) -> None:
+    await conn.execute(
+        "INSERT INTO stock_slip_items (slip_id, product_id, quantity) VALUES ($1, $2, $3)",
+        slip_id,
+        product_id,
+        quantity,
+    )
 
 
 async def seed_stock(

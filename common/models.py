@@ -6,12 +6,12 @@ Giao diện sinh kiểu TypeScript từ các model này (make gen-api), không t
 
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints
 
-from common.constants import AccountStatus, BranchStatus, EmployeeStatus, Role
+from common.constants import AccountStatus, BranchStatus, EmployeeStatus, ProductStatus, Role
 
 # Chuỗi bắt buộc: bỏ khoảng trắng hai đầu, không rỗng
 NonBlank = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -110,3 +110,67 @@ class AccountIssued(BaseModel):
     username: str
     temporary_password: str  # chỉ trả một lần, lúc cấp (6.3)
     account_status: AccountStatus
+
+
+# ---------------------------------------------------------------- Nhóm 1 (vòng 2)
+
+
+class ProductGroup(BaseModel):
+    group_id: str
+    name: str
+    description: str | None
+
+
+class ProductGroupCreate(BaseModel):
+    group_id: NonBlank
+    name: NonBlank
+    description: str | None = None
+
+
+class ProductGroupUpdate(BaseModel):
+    name: NonBlank = None  # type: ignore[assignment]
+    description: str | None = None
+
+
+class Product(BaseModel):
+    product_id: str
+    name: str
+    group_id: str
+    unit: str
+    current_price: int  # VND, đã gồm VAT
+    description: str | None
+    status: ProductStatus
+
+
+class ProductCreate(BaseModel):
+    product_id: NonBlank
+    name: NonBlank
+    group_id: NonBlank
+    unit: NonBlank
+    description: str | None = None
+    price: int  # giá ban đầu; > 0 kiểm tra ở service (SP-02)
+
+
+class ProductUpdate(BaseModel):
+    # Mã không đổi (SP-01); nhóm, giá, trạng thái đổi qua endpoint riêng
+    name: NonBlank = None  # type: ignore[assignment]
+    description: str | None = None
+    unit: NonBlank = None  # type: ignore[assignment]
+
+
+class ProductGroupChange(BaseModel):
+    group_id: NonBlank
+
+
+class PriceChange(BaseModel):
+    price: int
+
+
+class PriceHistoryEntry(BaseModel):
+    effective_at: datetime
+    price: int
+    changed_by: str
+
+
+class ProductStatusChange(BaseModel):
+    status: ProductStatus

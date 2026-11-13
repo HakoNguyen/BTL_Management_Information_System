@@ -110,6 +110,38 @@ không phân công, không cấp tài khoản cho nhân viên Đã nghỉ; nhân
 | 1.3 | `PUT /products/{product_id}/price`, `GET /products/{product_id}/price-history` | HQ | SP-02 |
 | 1.4 | `PUT /products/{product_id}/status` | HQ | SP-04 |
 
+Trường (chốt ở vòng 2). `?` là trường không bắt buộc; ở `PATCH`, trường không gửi thì giữ nguyên.
+
+| Model | Trường |
+| --- | --- |
+| `ProductGroup` (response) | `group_id`, `name`, `description` (null được) |
+| `ProductGroupCreate` | `group_id`, `name`, `description?` |
+| `ProductGroupUpdate` | `name?`, `description?`; `name` không nhận null |
+| `Product` (response) | `product_id`, `name`, `group_id`, `unit`, `current_price`, `description` (null được), `status` (`ProductStatus`) |
+| `ProductCreate` | `product_id`, `name`, `group_id`, `unit`, `description?`, `price` (giá ban đầu) |
+| `ProductUpdate` | `name?`, `description?`, `unit?`; `name`, `unit` không nhận null. Mã không đổi (SP-01); nhóm, giá, trạng thái đổi qua endpoint riêng |
+| `ProductGroupChange` | `group_id` |
+| `PriceChange` | `price` |
+| `PriceHistoryEntry` (response) | `effective_at`, `price`, `changed_by` |
+| `ProductStatusChange` | `status` (`ProductStatus`) |
+
+| Endpoint | Request → response | Lỗi nghiệp vụ |
+| --- | --- | --- |
+| `GET /product-groups` | → `ProductGroup[]` | |
+| `POST /product-groups` | `ProductGroupCreate` → `201 ProductGroup` | `DUPLICATE` SP-01 |
+| `PATCH /product-groups/{group_id}` | `ProductGroupUpdate` → `ProductGroup` | `NOT_FOUND` |
+| `DELETE /product-groups/{group_id}` | → `ProductGroup` (nhóm vừa xóa) | `NOT_FOUND`; `RULE_VIOLATION` SP-01 (còn sản phẩm, kể cả Ngừng bán) |
+| `PUT /products/{product_id}/group` | `ProductGroupChange` → `Product` | `NOT_FOUND` (sản phẩm, nhóm) |
+| `GET /products` | → `Product[]` (cả Ngừng bán) | |
+| `GET /products/{product_id}` | → `Product` | `NOT_FOUND` |
+| `POST /products` | `ProductCreate` → `201 Product`; ghi bản ghi lịch sử giá đầu tiên trong cùng transaction | `DUPLICATE` SP-01; `NOT_FOUND` (nhóm); `RULE_VIOLATION` SP-02 (giá ≤ 0) |
+| `PATCH /products/{product_id}` | `ProductUpdate` → `Product` | `NOT_FOUND`; `RULE_VIOLATION` SP-04 (đổi đơn vị tính khi sản phẩm đã có trên đơn hoặc phiếu kho) |
+| `PUT /products/{product_id}/price` | `PriceChange` → `Product`; ghi lịch sử giá (người đổi = người gọi) | `NOT_FOUND`; `RULE_VIOLATION` SP-02 (giá ≤ 0 hoặc bằng giá hiện hành) |
+| `GET /products/{product_id}/price-history` | → `PriceHistoryEntry[]`, theo `effective_at` tăng dần | `NOT_FOUND` |
+| `PUT /products/{product_id}/status` | `ProductStatusChange` → `Product` | `NOT_FOUND`; `INVALID_STATE` (đã ở trạng thái đích) |
+
+Sản phẩm mới không có dòng `stock` nào, tức tồn 0 tại mọi chi nhánh (SP-04); nhóm 1 không ghi D5.
+
 ### Nhóm 2 – Khách hàng (vòng 3; 2.4 ở vòng 7)
 
 | Chức năng | Method, đường dẫn | Vai trò | Quy tắc |
