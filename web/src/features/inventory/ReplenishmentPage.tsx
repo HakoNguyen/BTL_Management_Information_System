@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Card, Form, Input, Select, Table } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
+import { useAuth } from "../../auth";
 import { dateTime } from "../../format";
 import { REPLENISH_TYPE_LABEL, optionsOf } from "../../labels";
 import { FormModal, useWrite } from "../../ui";
@@ -16,6 +17,7 @@ export function ReplenishmentPage() {
     queryFn: () => unwrap(client.GET("/replenishment-requests")),
   });
   const [open, setOpen] = useState(false);
+  const isWarehouse = useAuth().user?.role === "WAREHOUSE";
   const create = useWrite(
     (body: Schemas["ReplenishmentCreate"]) =>
       unwrap(client.POST("/replenishment-requests", { body })),
@@ -23,7 +25,15 @@ export function ReplenishmentPage() {
   );
 
   return (
-    <Card title="Yêu cầu bổ sung" extra={<Button onClick={() => setOpen(true)}>Lập yêu cầu</Button>}>
+    <Card
+      title="Yêu cầu bổ sung"
+      // QL chỉ xem; lập yêu cầu là việc của NV kho (ma trận 2.2)
+      extra={
+        isWarehouse && (
+          <Button onClick={() => setOpen(true)}>Lập yêu cầu</Button>
+        )
+      }
+    >
       <Table<Request>
         rowKey="request_id"
         loading={requests.isPending}

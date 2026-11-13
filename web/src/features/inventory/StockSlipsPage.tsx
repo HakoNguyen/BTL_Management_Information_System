@@ -1,9 +1,11 @@
 // 4.2 Ghi nhập theo phiếu giao (TK-02, ghi nhận ngay); 4.2/4.3 phiếu điều chỉnh, xuất hủy, xuất trả kho tổng
-// lập ở Chờ xử lý, chờ QL duyệt (TK-03, TK-04). Lỗi do API kiểm tra; giao diện không tự tính tồn khả dụng.
+// lập ở Chờ xử lý, chờ QL duyệt hoặc từ chối kèm lý do (TK-03, TK-04, K-02, K-03). Trụ sở không duyệt thay
+// phiếu kho. Lỗi do API kiểm tra; giao diện không tự tính tồn khả dụng.
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Card, Form, Input, Select, Space, Table, Tag } from "antd";
+import { Alert, Button, Card, Form, Input, Popconfirm, Select, Space, Table, Tag } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
+import { useAuth } from "../../auth";
 import { dateTime } from "../../format";
 import { SLIP_STATUS_LABEL, SLIP_TYPE_LABEL, optionsOf } from "../../labels";
 import { FormModal, useWrite } from "../../ui";
@@ -24,6 +26,9 @@ const SLIP_TYPES = typeOptions<SlipCreate["type"]>([
   "OUT_TO_WAREHOUSE",
 ]);
 const ADJUST_TYPES: Slip["type"][] = ["ADJUST_UP", "ADJUST_DOWN"];
+// Chỉ phiếu điều chỉnh, xuất khác qua QL duyệt; phiếu nhập, xuất bán không (TK-03)
+const APPROVABLE = SLIP_TYPES.map((option) => option.value as Slip["type"]);
+const slipPath = (id: string) => ({ params: { path: { slip_id: id } } });
 // Phiếu xuất giữ hàng nên làm đổi tồn khả dụng; phiếu nhập đổi tồn ngay
 const KEYS = ["stock-slips", "stock", "reports"];
 const STATUS_COLOR: Record<Slip["status"], string> = {
@@ -33,7 +38,9 @@ const STATUS_COLOR: Record<Slip["status"], string> = {
 };
 
 export function StockSlipsPage() {
-  const [status, setStatus] = useState<Slip["status"]>();
+  const isManager = useAuth().user?.role === "MANAGER";
+  // QL mở trang để duyệt: mặc định lọc phiếu Chờ xử lý
+  const [status, setStatus] = useState<Slip["status"] | undefined>(isManager ? "PENDING" : undefined);
   const slips = useQuery({
     queryKey: ["stock-slips", status],
     queryFn: () => unwrap(client.GET("/stock-slips", { params: { query: { status } } })),
@@ -51,6 +58,7 @@ export function StockSlipsPage() {
   const productLabel = (id: string) => (names.has(id) ? `${id} – ${names.get(id)}` : id);
 
   const [dialog, setDialog] = useState<"inbound" | "slip" | null>(null);
+  const [rejecting, setRejecting] = useState<Slip | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
   const close = () => {
     setDialog(null);
@@ -63,6 +71,15 @@ export function StockSlipsPage() {
   );
   const create = useWrite(
     (body: SlipCreate) => unwrap(client.POST("/stock-slips", { body })),
+    KEYS,
+  );
+  const approve = useWrite(
+    (slipId: string) => unwrap(client.POST("/stock-slips/{slip_id}/approve", slipPath(slipId))),
+    KEYS,
+  );
+  const reject = useWrite(
+    (body: Schemas["StockSlipReject"]) =>
+      unwrap(client.POST("/stock-slips/{slip_id}/reject", { ...slipPath(rejecting!.slip_id), body })),
     KEYS,
   );
   // TK-03: chỉ rõ dòng vượt tồn khả dụng; ném lại để hộp thoại giữ nguyên cho người dùng sửa
@@ -87,8 +104,12 @@ export function StockSlipsPage() {
             value={status}
             onChange={setStatus}
           />
-          <Button onClick={() => setDialog("inbound")}>Ghi nhập hàng</Button>
-          <Button onClick={() => setDialog("slip")}>Lập phiếu điều chỉnh, xuất</Button>
+          {!isManager && (
+            <>
+              <Button onClick={() => setDialog("inbound")}>Ghi nhập hàng</Button>
+              <Button onClick={() => setDialog("slip")}>Lập phiếu điều chỉnh, xuất</Button>
+            </>
+          )}
         </Space>
       }
     >
@@ -143,8 +164,44 @@ export function StockSlipsPage() {
           { title: "Điều chỉnh phiếu", dataIndex: "adjusts_slip_id" },
           { title: "Người lập", dataIndex: "created_by" },
           { title: "Lập lúc", dataIndex: "created_at", render: dateTime },
+          ...(isManager
+            ? [
+                {
+                  title: "Thao tác",
+                  render: (_: unknown, slip: Slip) =>
+                    slip.status === "PENDING" &&
+                    APPROVABLE.includes(slip.type) && (
+                      <Space wrap>
+                        <Popconfirm
+                          title={`Duyệt phiếu ${slip.slip_id}? Tồn sẽ thay đổi ngay.`}
+                          onConfirm={() => approve.mutate(slip.slip_id)}
+                        >
+                          <Button size="small" type="primary">
+                            Duyệt
+                          </Button>
+                        </Popconfirm>
+                        <Button size="small" danger onClick={() => setRejecting(slip)}>
+                          Từ chối
+                        </Button>
+                      </Space>
+                    ),
+                },
+              ]
+            : []),
         ]}
       />
+
+      {rejecting && (
+        <FormModal<Schemas["StockSlipReject"]>
+          title={`Từ chối phiếu ${rejecting.slip_id}`}
+          onClose={() => setRejecting(null)}
+          onSubmit={reject.mutateAsync}
+        >
+          <Form.Item label="Lý do từ chối" name="reason" rules={[{ required: true, whitespace: true }]}>
+            <Input.TextArea />
+          </Form.Item>
+        </FormModal>
+      )}
 
       {dialog === "inbound" && (
         <FormModal<InboundCreate>
