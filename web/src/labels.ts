@@ -63,6 +63,27 @@ export const SLIP_TYPE_LABEL: Record<Schemas["SlipType"], string> = {
   ADJUST_DOWN: "Điều chỉnh giảm",
 };
 
+export const ORDER_STATUS_LABEL: Record<Schemas["OrderStatus"], string> = {
+  DRAFT: "Đang lập",
+  AWAITING_PAYMENT: "Chờ thanh toán",
+  COMPLETED: "Hoàn tất",
+  PARTIALLY_RETURNED: "Đã trả một phần",
+  FULLY_RETURNED: "Đã trả toàn bộ",
+  CANCELLED: "Đã hủy",
+};
+
+export const RETURN_STATUS_LABEL: Record<Schemas["ReturnStatus"], string> = {
+  PENDING: "Chờ duyệt",
+  APPROVED: "Đã duyệt",
+  REJECTED: "Từ chối",
+};
+
+export const REFUND_STATUS_LABEL: Record<Schemas["RefundStatus"], string> = {
+  NOT_REFUNDED: "Chưa hoàn",
+  PENDING: "Đang chờ kết quả",
+  REFUNDED: "Đã hoàn",
+};
+
 /** Danh sách lựa chọn cho Select từ một bảng nhãn. */
 export const optionsOf = <K extends string>(labels: Record<K, string>) =>
   (Object.keys(labels) as K[]).map((value) => ({ value, label: labels[value] }));

@@ -2,13 +2,16 @@
 // Mỗi vòng nghiệp vụ thêm trang của mình bằng MỘT dòng ở đây; trang nằm trong src/features/<module>/.
 import type { ReactNode } from "react";
 import type { Role } from "./api/client";
+import { CustomersPage } from "./features/customers/CustomersPage";
 import { HomePage } from "./features/home/HomePage";
+import { OrdersPage } from "./features/orders/OrdersPage";
 import { ProductGroupsPage } from "./features/products/ProductGroupsPage";
 import { ProductsPage } from "./features/products/ProductsPage";
 import { ProductSalesReportPage } from "./features/reports/ProductSalesReportPage";
 import { RevenueReportPage } from "./features/reports/RevenueReportPage";
 import { StaffSalesReportPage } from "./features/reports/StaffSalesReportPage";
 import { StockReportPage } from "./features/reports/StockReportPage";
+import { ReturnsPage } from "./features/returns/ReturnsPage";
 import { BranchesPage } from "./features/staff/BranchesPage";
 import { EmployeesPage } from "./features/staff/EmployeesPage";
 
@@ -28,7 +31,10 @@ export const MENU: MenuItem[] = [
   { path: "/reports/revenue", label: "Doanh thu", roles: ["HQ"], element: <RevenueReportPage /> },
   { path: "/reports/products", label: "Sản phẩm bán", roles: ["HQ"], element: <ProductSalesReportPage /> },
   { path: "/reports/stock", label: "Tồn kho", roles: ["HQ"], element: <StockReportPage /> },
-  { path: "/reports/staff-sales", label: "Doanh số nhân viên", roles: ["HQ"], element: <StaffSalesReportPage /> },
+  { path: "/reports/staff-sales", label: "Doanh số nhân viên", roles: ["HQ", "SALES"], element: <StaffSalesReportPage /> },
+  { path: "/customers", label: "Khách hàng", roles: ["SALES"], element: <CustomersPage /> },
+  { path: "/orders", label: "Đơn hàng", roles: ["SALES"], element: <OrdersPage /> },
+  { path: "/returns", label: "Phiếu trả", roles: ["SALES"], element: <ReturnsPage /> },
 ];
 
 export const menuFor = (role: Role) =>

@@ -4,7 +4,7 @@ File này cho biết dự án đang ở đâu và việc tiếp theo là gì. Đ
 
 ## 1. Tiến độ
 
-**Vòng tiếp theo: 10 (giao diện), lượt NVBH.** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
+**Vòng tiếp theo: 10 (giao diện), lượt Thu ngân.** Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
 dùng dữ liệu và hàm của vòng trước.
 
 | Vòng | Module | Nhánh | Chức năng | Quy tắc | Tình huống KT | Trạng thái |
@@ -19,7 +19,7 @@ dùng dữ liệu và hàm của vòng trước.
 | 7 | `returns`, `customers` | `returns/return-refund` | 3.4 phần phiếu trả và hoàn tiền; 2.4 | TH-01 đến TH-05, KH-04 | KT-08, KT-09 | **xong** (13/11/2026) |
 | 8 | `workers/closing`, `inventory`, `reports` | `closing/end-of-day-replenishment` | Sự kiện giờ đóng cửa; 4.4; 5.4 | BH-05, TH-03, TK-06 | KT-07, KT-14 | **xong** (13/11/2026) |
 | 9 | `reports` | `reports/revenue-stock-staff` | 5.1, 5.2, 5.3, 5.5 | DT-01 đến DT-05 | KT-10, 13, 15 | **xong** (13/11/2026) |
-| 10 | `web` | `web/role-screens` | Giao diện theo 5 vai trò; dữ liệu demo | Ma trận 2.2 | chạy tay luồng P1–P5 | đang làm: lượt Trụ sở xong (13/11/2026, nhánh `web/hq-screens`) |
+| 10 | `web` | `web/role-screens` | Giao diện theo 5 vai trò; dữ liệu demo | Ma trận 2.2 | chạy tay luồng P1–P5 | đang làm: lượt Trụ sở xong (13/11/2026, nhánh `web/hq-screens`); lượt NVBH xong (13/11/2026, nhánh `web/sales-screens`) |
 
 Xong một vòng thì sửa cột "Trạng thái" ở bảng này, dòng "Vòng tiếp theo" ở trên, và cột "Trạng thái" của các
 tình huống KT trong [tests.md](tests.md).

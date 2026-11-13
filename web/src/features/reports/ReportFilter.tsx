@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Descriptions, Form, Input, Select } from "antd";
 import type { ReactNode } from "react";
 import { client, unwrap } from "../../api/client";
+import { useAuth } from "../../auth";
 import { dateTime } from "../../format";
 
 /** Kỳ lọc tính cả hai đầu; `branch_id` bỏ trống = toàn chuỗi (chỉ Trụ sở được chọn). */
@@ -16,9 +17,12 @@ export function ReportFilter<T extends ReportParams>(props: {
   initialValues?: Partial<T>;
   children?: ReactNode;
 }) {
+  // Chỉ Trụ sở được chọn chi nhánh; vai trò khác API luôn lấy chi nhánh mình (nhóm 5)
+  const isHQ = useAuth().user?.role === "HQ";
   const branches = useQuery({
     queryKey: ["branches"],
     queryFn: () => unwrap(client.GET("/branches")),
+    enabled: isHQ,
   });
   return (
     <Form<T>
@@ -33,17 +37,19 @@ export function ReportFilter<T extends ReportParams>(props: {
       <Form.Item label="Đến ngày" name="to" rules={[{ required: true }]}>
         <Input type="date" />
       </Form.Item>
-      <Form.Item label="Chi nhánh" name="branch_id">
-        <Select
-          allowClear
-          placeholder="Toàn chuỗi"
-          style={{ minWidth: 200 }}
-          options={(branches.data ?? []).map((branch) => ({
-            value: branch.branch_id,
-            label: `${branch.branch_id} – ${branch.name}`,
-          }))}
-        />
-      </Form.Item>
+      {isHQ && (
+        <Form.Item label="Chi nhánh" name="branch_id">
+          <Select
+            allowClear
+            placeholder="Toàn chuỗi"
+            style={{ minWidth: 200 }}
+            options={(branches.data ?? []).map((branch) => ({
+              value: branch.branch_id,
+              label: `${branch.branch_id} – ${branch.name}`,
+            }))}
+          />
+        </Form.Item>
+      )}
       {props.children}
       <Button type="primary" htmlType="submit">
         Xem báo cáo
