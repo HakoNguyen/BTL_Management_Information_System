@@ -1688,6 +1688,11 @@ export interface components {
         };
         /** ReturnCreate */
         ReturnCreate: {
+            /**
+             * Invoice Presented
+             * @default false
+             */
+            invoice_presented: boolean;
             /** Items */
             items: components["schemas"]["ReturnItemInput"][];
             /** Order Id */

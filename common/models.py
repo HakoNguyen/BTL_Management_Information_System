@@ -461,6 +461,7 @@ class ReturnCreate(BaseModel):
     order_id: NonBlank
     reason: NonBlank  # TH-02
     items: list[ReturnItemInput] = Field(min_length=1)
+    invoice_presented: bool = False  # đơn của KHLE bắt buộc true (TH-01); không lưu CSDL
 
 
 class ReturnItem(BaseModel):

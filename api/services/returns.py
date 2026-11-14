@@ -15,6 +15,7 @@ from common import clock
 from common.constants import (
     OVERDUE_REJECT_REASON,
     RETURN_WINDOW_DAYS,
+    WALK_IN_CUSTOMER_ID,
     BranchStatus,
     ErrorCode,
     OrderStatus,
@@ -204,8 +205,9 @@ async def _check_quantities(
 async def create_return(
     conn: asyncpg.Connection, body: ReturnCreate, user: CurrentUser
 ) -> ReturnSlip:
-    """TH-01: đơn Hoàn tất/Đã trả một phần, tại chi nhánh của đơn đang Hoạt động, trong 7 ngày.
-    TH-02: dòng hợp lệ, không vượt lượng còn được trả. Phiếu Chờ duyệt, hàng vẫn do khách giữ."""
+    """TH-01: đơn Hoàn tất/Đã trả một phần, tại chi nhánh của đơn đang Hoạt động, trong 7 ngày;
+    đơn của KHLE phải có hóa đơn. TH-02: dòng hợp lệ, không vượt lượng còn được trả.
+    Phiếu Chờ duyệt, hàng vẫn do khách giữ."""
     at = clock.now()
     wanted = [item.product_id for item in body.items]
     if len(set(wanted)) != len(wanted):
@@ -217,7 +219,8 @@ async def create_return(
     async with conn.transaction():
         # khóa đơn: các phiếu trả của cùng đơn lập, duyệt lần lượt nên tổng lượng trả không vượt
         order = await conn.fetchrow(
-            "SELECT o.branch_id, o.status, o.completed_at, b.status AS branch_status"
+            "SELECT o.branch_id, o.customer_id, o.status, o.completed_at,"
+            " b.status AS branch_status"
             " FROM orders o JOIN branches b USING (branch_id)"
             " WHERE o.order_id = $1 FOR UPDATE OF o",
             body.order_id,
@@ -239,6 +242,12 @@ async def create_return(
             raise AppError(
                 ErrorCode.RULE_VIOLATION,
                 f"Đã quá hạn trả hàng {RETURN_WINDOW_DAYS} ngày kể từ lúc hoàn tất",
+                rule="TH-01",
+            )
+        if order["customer_id"] == WALK_IN_CUSTOMER_ID and not body.invoice_presented:
+            raise AppError(
+                ErrorCode.RULE_VIOLATION,
+                "Khách lẻ không xuất trình hóa đơn thì không nhận trả",
                 rule="TH-01",
             )
         await _check_quantities(

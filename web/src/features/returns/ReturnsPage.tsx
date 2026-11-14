@@ -2,7 +2,7 @@
 // mọi chi nhánh kèm lý do (TH-03, K-02, K-03, quyết định 15).
 // TH-01, TH-02 do API kiểm tra; giá trị phiếu, trạng thái hoàn lấy từ API (dẫn xuất), giao diện không tự tính.
 import { useQuery } from "@tanstack/react-query";
-import { Button, Card, Form, Input, InputNumber, Select, Space, Table, Tag } from "antd";
+import { Button, Card, Checkbox, Form, Input, InputNumber, Select, Space, Table, Tag } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { useAuth } from "../../auth";
@@ -60,6 +60,14 @@ function ReturnFields({ orders }: { orders: Schemas["Order"][] }) {
       </Form.Item>
       <Form.Item label="Lý do trả" name="reason" rules={[{ required: true, whitespace: true }]}>
         <Input.TextArea />
+      </Form.Item>
+      {/* TH-01: khách lẻ không có hóa đơn thì không nhận trả; API kiểm tra lại */}
+      <Form.Item
+        name="invoice_presented"
+        valuePropName="checked"
+        extra={order?.customer_id === "KHLE" ? "Bắt buộc với khách lẻ (KHLE)" : undefined}
+      >
+        <Checkbox>Khách xuất trình hóa đơn</Checkbox>
       </Form.Item>
       <Form.List name="items">
         {(fields, { add, remove }) => (

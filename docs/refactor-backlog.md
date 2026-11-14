@@ -16,7 +16,7 @@ Mức ảnh hưởng: **Cao** = sai tiền, tồn hoặc làm kẹt nghiệp v�
   - Test: `tests/orders/test_orders.py` thêm `test_create_inactive_branch`. **Đã xong**, chứng minh bởi
     `test_create_inactive_branch`.
 
-- [ ] **A2. Khách lẻ (KHLE) không có hóa đơn vẫn trả được hàng** (TH-01). Mức: Vừa.
+- [x] **A2. Khách lẻ (KHLE) không có hóa đơn vẫn trả được hàng** (TH-01). Mức: Vừa.
   - Chỗ lỗi: `api/services/returns.py` (`create_return`, khoảng dòng 204–262) không xét khách KHLE;
     `ReturnCreate` (`common/models.py:455`) chỉ có `order_id`; `web/src/features/returns/ReturnsPage.tsx:52–58`
     cho chọn mọi đơn của chi nhánh.
@@ -24,6 +24,8 @@ Mức ảnh hưởng: **Cao** = sai tiền, tồn hoặc làm kẹt nghiệp v�
   - Cách sửa: thêm trường `invoice_presented: bool` vào `ReturnCreate`; đơn của KHLE mà `false` thì `RULE_VIOLATION`
     `rule` = TH-01. Ghi trường mới vào `docs/api.md` TRƯỚC, chạy `make gen-api`, thêm ô "Khách xuất trình hóa đơn" ở form.
   - Test: `tests/returns/test_returns.py` thêm trường hợp KHLE có và không có hóa đơn; khách có hồ sơ không cần hóa đơn.
+  - **Đã xong** (`invoice_presented` chỉ ở request, không lưu CSDL), chứng minh bởi `test_walk_in_needs_invoice`,
+    `test_registered_customer_without_invoice`.
 
 - [ ] **A3. Lập yêu cầu bổ sung (4.4) không hiện tồn và ngưỡng hiện tại.** Mức: Thấp.
   - Chỗ lỗi: `web/src/features/inventory/ReplenishmentPage.tsx` dùng `ItemsField`, chỉ hiện "khả dụng"

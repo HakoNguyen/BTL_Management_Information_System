@@ -331,7 +331,7 @@ chi nhánh khác trả `FORBIDDEN` `rule` = K-01; HQ xem và quyết định đ�
 | Model | Trường |
 | --- | --- |
 | `ReturnItemInput` | `product_id`, `good_qty`, `defective_qty` (nguyên ≥ 0, tổng > 0, TH-02) |
-| `ReturnCreate` | `order_id`, `reason` (bắt buộc, TH-02), `items` (≥ 1 dòng, mỗi sản phẩm một dòng) |
+| `ReturnCreate` | `order_id`, `reason` (bắt buộc, TH-02), `items` (≥ 1 dòng, mỗi sản phẩm một dòng), `invoice_presented` (khách xuất trình hóa đơn/mã đơn, mặc định `false`; bắt buộc `true` với đơn của KHLE, TH-01; không lưu vào CSDL) |
 | `ReturnItem` (response) | `product_id`, `good_qty`, `defective_qty`, `unit_price` (đơn giá chốt trên đơn gốc), `amount` (= (tốt + lỗi) × đơn giá chốt) |
 | `ReturnSlip` (response) | `return_id`, `order_id`, `branch_id` (của đơn gốc), `created_by`, `created_at`, `reason`, `status` (`ReturnStatus`), `decided_by` (null = Hệ thống tự từ chối), `decided_at`, `decision_note`; dẫn xuất: `value` (giá trị phiếu, TH-04), `refund_status` (`RefundStatus`; null khi phiếu chưa `APPROVED`), `items` (`ReturnItem[]`) |
 | `RefundStatus` (enum, dẫn xuất, [db.md](db.md) mục 6) | `NOT_REFUNDED` = Chưa hoàn; `PENDING` = Đang chờ kết quả; `REFUNDED` = Đã hoàn |
@@ -340,7 +340,7 @@ chi nhánh khác trả `FORBIDDEN` `rule` = K-01; HQ xem và quyết định đ�
 
 | Endpoint | Request → response | Lỗi nghiệp vụ |
 | --- | --- | --- |
-| `POST /returns` | `ReturnCreate` → `201 ReturnSlip` `PENDING`; hàng vẫn do khách giữ | `NOT_FOUND` (đơn); `FORBIDDEN` K-01; `INVALID_STATE` TH-01 (đơn không ở `COMPLETED`/`PARTIALLY_RETURNED`); `RULE_VIOLATION` TH-01 (chi nhánh Ngừng hoạt động; quá `completed_at` + 7 ngày); `VALIDATION_ERROR` TH-02 (trùng sản phẩm; dòng có tổng = 0); `RULE_VIOLATION` TH-02 (sản phẩm không có trong đơn, `details.product_ids`; vượt lượng còn được trả, `details.lines` gồm `product_id`, `requested`, `remaining`) |
+| `POST /returns` | `ReturnCreate` → `201 ReturnSlip` `PENDING`; hàng vẫn do khách giữ | `NOT_FOUND` (đơn); `FORBIDDEN` K-01; `INVALID_STATE` TH-01 (đơn không ở `COMPLETED`/`PARTIALLY_RETURNED`); `RULE_VIOLATION` TH-01 (chi nhánh Ngừng hoạt động; quá `completed_at` + 7 ngày; đơn của KHLE mà `invoice_presented` = `false`); `VALIDATION_ERROR` TH-02 (trùng sản phẩm; dòng có tổng = 0); `RULE_VIOLATION` TH-02 (sản phẩm không có trong đơn, `details.product_ids`; vượt lượng còn được trả, `details.lines` gồm `product_id`, `requested`, `remaining`) |
 | `GET /returns?status=…&refund_status=…` | → `ReturnSlip[]` mới nhất trước: HQ mọi chi nhánh, vai trò khác chi nhánh mình. Phiếu Đã duyệt chưa hoàn xong (TH-05): `status=APPROVED` và `refund_status=NOT_REFUNDED` | |
 | `GET /returns/{return_id}` | → `ReturnSlip` | `NOT_FOUND`; `FORBIDDEN` K-01 |
 | `POST /returns/{return_id}/approve` | `ReturnDecision` → `ReturnSlip` `APPROVED`, ghi `decided_by`, `decided_at`, `decision_note`. Cùng transaction: kiểm tra lại TH-02, `inventory.receive_return` cho số lượng tốt (không có hàng tốt thì không lập phiếu kho), `orders.mark_returned` (TH-05) | `NOT_FOUND`; `FORBIDDEN` K-01, K-02 (người duyệt là người lập); `VALIDATION_ERROR` K-02 (HQ thiếu lý do); `INVALID_STATE` TH-03 (không ở `PENDING`); `RULE_VIOLATION` TH-02 |
