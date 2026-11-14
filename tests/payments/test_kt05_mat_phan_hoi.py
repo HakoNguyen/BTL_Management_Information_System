@@ -1,7 +1,7 @@
 """KT-05 Mất phản hồi, phản hồi lặp (TT-02, TT-03, BH-05, CA-02, CA-03).
 
-Chức năng 3.2, 4.3, 3.3, 3.5. Ý "đơn không bị hủy lúc đóng cửa" kiểm ở đây bằng hủy tay (BH-04 dùng
-cùng điều kiện); tác vụ giờ đóng cửa (BH-05) ở vòng 8 kiểm lại trong KT-07.
+Chức năng 3.2, 4.3, 3.3, 3.5. Ý "đơn không bị hủy kể cả lúc đóng cửa" kiểm cả hủy tay (BH-04) lẫn
+tác vụ giờ đóng cửa `run_closing` (BH-05).
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from fixtures import (
     seed_stock,
     start_payment,
 )
+from workers.closing import run_closing
 
 from common import clock
 from common.clock import VN_TZ
@@ -40,6 +41,7 @@ from common.constants import (
 pytestmark = pytest.mark.db
 
 NOW = datetime(2026, 11, 13, 10, 0, tzinfo=VN_TZ)
+CLOSING = datetime(2026, 11, 13, 22, 0, tzinfo=VN_TZ)  # giờ đóng cửa mặc định của seed_branch
 
 
 async def _counts(conn: asyncpg.Connection, order_id: str) -> tuple[int, int, int]:
@@ -101,6 +103,20 @@ async def test_kt05_mat_phan_hoi(client: httpx.AsyncClient, conn: asyncpg.Connec
     assert response.json()["error_code"] == ErrorCode.RULE_VIOLATION
     assert response.json()["details"]["rule"] == "CA-03"
     assert await _counts(conn, order_id) == (0, 0, 0)
+    # đến giờ đóng cửa (BH-05): đơn vẫn Chờ thanh toán, hàng vẫn giữ
+    clock.freeze(CLOSING)
+    await run_closing(conn, clock.now())
+    # phiên cũ hết hạn sau 12 giờ: đăng nhập lại
+    bh = await login_as(client, SALES_ID)
+    tn = await login_as(client, CASHIER_ID)
+    ql = await login_as(client, MANAGER_ID)
+    response = await client.get(f"/orders/{order_id}", headers=bh)
+    assert response.status_code == 200, response.text
+    order = response.json()
+    assert order["status"] == OrderStatus.AWAITING_PAYMENT
+    assert order["cancelled_at"] is None
+    stock = (await client.get("/stock", headers=bh)).json()
+    assert [(s["quantity"], s["available"]) for s in stock] == [(5, 2)]
 
     # Sau tra soát: ngân hàng xác nhận Thành công mã R1 -> đơn Hoàn tất, xuất bán, hóa đơn
     response = await client.post(

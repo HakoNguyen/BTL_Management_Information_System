@@ -76,7 +76,8 @@ Mức ảnh hưởng: **Cao** = sai tiền, tồn hoặc làm kẹt nghiệp v�
 
 ## D. Thiếu test
 
-- [ ] KT-05 chưa kiểm ý "đơn có giao dịch Chờ kết quả không bị hủy lúc đóng cửa" (gọi `run_closing` trong test).
+- [x] KT-05 chưa kiểm ý "đơn có giao dịch Chờ kết quả không bị hủy lúc đóng cửa" (gọi `run_closing` trong test).
+  **Đã xong**, chứng minh bởi `tests/payments/test_kt05_mat_phan_hoi.py::test_kt05_mat_phan_hoi`.
 - [ ] TH-02: bước kiểm tra lại khi duyệt (`api/services/returns.py:329`).
 - [ ] TT-03: cả giao dịch cuộn lại khi `confirm_sale` hoặc phát hành hóa đơn lỗi.
 - [ ] Phản hồi lặp của ngân hàng mang kết quả khác (Thành công đến sau Thất bại) bị bỏ qua mà không log
