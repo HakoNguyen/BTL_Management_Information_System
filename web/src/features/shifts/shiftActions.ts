@@ -9,9 +9,9 @@ export function shiftActions(
 ): ShiftAction[] {
   if (shift.status === "OPEN") return role === "MANAGER" ? ["proxy-close"] : [];
   if (shift.status !== "AWAITING_CONFIRMATION") return [];
-  // Ca QL đóng thay chỉ HQ xác nhận; ca thu ngân tự đóng chỉ QL xác nhận
-  const confirmer: Role = shift.proxy_closed_by ? "HQ" : "MANAGER";
-  return role === confirmer ? ["confirm"] : [];
+  // Ca QL đóng thay chỉ HQ xác nhận; ca thu ngân tự đóng QL xác nhận, HQ duyệt thay kèm lý do (2.2)
+  if (role === "HQ") return ["confirm"];
+  return role === "MANAGER" && !shift.proxy_closed_by ? ["confirm"] : [];
 }
 
 /** TH-04: giao dịch hoàn điện tử Thất bại chưa được duyệt hoàn tiền mặt; QL hoặc HQ duyệt thay. */
@@ -21,3 +21,14 @@ export const canApproveCashRefund = (txn: Schemas["Transaction"], role: Role) =>
   txn.method !== "CASH" &&
   txn.status === "FAILED" &&
   !txn.cash_refund_approved_by;
+
+/** TT-02, CA-03: ca đã đóng còn giao dịch điện tử Chờ kết quả thì thu ngân tra soát để ca chốt được. */
+export const canReconcile = (
+  shift: Pick<Schemas["Shift"], "status">,
+  txn: Schemas["Transaction"],
+  role: Role,
+) =>
+  role === "CASHIER" &&
+  shift.status === "AWAITING_CONFIRMATION" &&
+  txn.status === "PENDING" &&
+  txn.method !== "CASH";

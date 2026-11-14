@@ -31,21 +31,25 @@ Mức ảnh hưởng: **Cao** = sai tiền, tồn hoặc làm kẹt nghiệp v�
   - Ảnh hưởng: chỉ giao diện; số liệu vẫn xem được ở trang Tồn kho chi nhánh.
   - Cách sửa: ở trang yêu cầu bổ sung, hiện tồn và ngưỡng của sản phẩm đang chọn (lấy từ `GET /stock`), không đổi API.
 
-- [ ] **A4. Giao diện không tra soát được giao dịch Chờ kết quả của ca đã đóng.** Mức: Vừa (gần Cao khi chạy thật).
+- [x] **A4. Giao diện không tra soát được giao dịch Chờ kết quả của ca đã đóng.** Mức: Vừa (gần Cao khi chạy thật).
   - Chỗ lỗi: `web/src/features/payments/PendingTransactions.tsx:19` chỉ dùng `useCurrentShift()` (ca đang mở);
     `web/src/features/shifts/ShiftsPage.tsx:174` liệt kê giao dịch chờ nhưng không có nút.
   - Ảnh hưởng: ngân hàng không phản hồi rồi thu ngân đóng ca thì giao dịch kẹt, ca không chốt được (CA-03); KT-05 và
     KT-16 không đi hết trên giao diện. API `POST /transactions/{id}/reconcile` vẫn làm được.
   - Cách sửa: thêm nút Tra soát cho giao dịch Chờ kết quả trong chi tiết ca (ca Chờ xác nhận của thu ngân), dùng lại
     hộp thoại tra soát hiện có.
+  - **Đã xong**, chứng minh bởi `web/src/features/shifts/shiftActions.test.ts` "tra soát giao dịch điện tử Chờ kết
+    quả trong ca Chờ xác nhận, chỉ thu ngân" (`canReconcile`).
 
 ## B. Lệch có chủ đích – cần chốt: sửa code hay sửa đặc tả (`/doc-change`)
 
-- [ ] **B1. Trụ sở không xác nhận chốt được ca thường khi QL vắng** (quyết định 14). Mức: Vừa. **Nên sửa.**
+- [x] **B1. Trụ sở không xác nhận chốt được ca thường khi QL vắng** (quyết định 14). Mức: Vừa. **Nên sửa.**
   - `api/services/shifts.py:285–288` chặn HQ; đặc tả 2.2 ghi "3.5 Xác nhận chốt ca: Trụ sở Duyệt thay".
   - Hệ quả dây chuyền: ca kẹt Chờ xác nhận, kéo theo chặn đổi phân công (NV-02) và đóng chi nhánh (NV-04).
   - Cách sửa: cho HQ xác nhận ca thường kèm lý do bắt buộc (như duyệt thay phiếu trả); sửa
     `tests/shifts/test_shifts.py::test_confirm_shift_forbidden` theo quy tắc mới; cập nhật quyết định 14 ở `docs/plan.md`.
+  - **Đã xong** (cột `shifts.confirm_reason`, migration 004), chứng minh bởi `test_hq_confirm_requires_reason`,
+    `test_manager_confirm_reason_optional`, `test_confirm_shift_forbidden` (đã sửa), `shiftActions.test.ts`.
 - [ ] **B2. Cảnh báo 5.4 không chạy theo lịch mỗi sáng** (quyết định 6). Mức: Thấp.
   - Đặc tả dòng 310, 520: "tự chạy mỗi sáng". Code tính lúc mở trang (`api/services/reports.py:55`).
   - Chọn một: giữ cách hiện tại và sửa đặc tả bằng `/doc-change`, hoặc thêm worker giống `api/workers/closing.py`.

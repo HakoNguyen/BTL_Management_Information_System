@@ -56,7 +56,7 @@ Cột viết theo dạng `tên trong code` = tên trong đặc tả 5.7. **PK** 
 | --- | --- | --- |
 | `transactions` | GIAO DỊCH | **`txn_id`** = mã GD; `order_id` = mã đơn; `return_id` = mã phiếu trả (chỉ giao dịch Hoàn); `shift_id` = mã ca; `type` = loại; `method` = phương thức; `amount` = số tiền; `status` = trạng thái; `created_at` = thời điểm tạo; `resolved_at` = thời điểm có kết quả; `reference_code` = mã tham chiếu; `cash_refund_approved_by` = mã NV duyệt hoàn tiền mặt thay thế; `cash_refund_reason` = lý do hoàn tiền mặt |
 | `invoices` | HÓA ĐƠN | **`invoice_no`** = số hóa đơn; `order_id` = mã đơn (duy nhất); `issued_at` = thời điểm phát hành; `print_count` = số lần in |
-| `shifts` | CA THU NGÂN | **`shift_id`** = mã ca; `branch_id` = mã CN; `cashier_id` = mã thu ngân; `opened_at`, `closed_at`, `settled_at` = thời điểm mở, đóng, chốt; `opening_cash` = tiền đầu ca; `counted_cash` = tiền kiểm đếm; `variance_reason` = lý do chênh lệch; `status` = trạng thái; `proxy_closed_by` = mã NV đóng thay; `witness_id` = mã NV làm chứng; `proxy_reason` = lý do đóng thay; `confirmed_by` = mã NV xác nhận chốt |
+| `shifts` | CA THU NGÂN | **`shift_id`** = mã ca; `branch_id` = mã CN; `cashier_id` = mã thu ngân; `opened_at`, `closed_at`, `settled_at` = thời điểm mở, đóng, chốt; `opening_cash` = tiền đầu ca; `counted_cash` = tiền kiểm đếm; `variance_reason` = lý do chênh lệch; `status` = trạng thái; `proxy_closed_by` = mã NV đóng thay; `witness_id` = mã NV làm chứng; `proxy_reason` = lý do đóng thay; `confirmed_by` = mã NV xác nhận chốt; `confirm_reason` = lý do xác nhận (bắt buộc khi trụ sở duyệt thay, K-02, K-03; thêm ở `004_shift_confirm_reason.sql`, không có trong đặc tả 5.7) |
 
 ### D5 Tồn kho (nhóm 4 ghi)
 

@@ -1,6 +1,6 @@
 // 3.5 Ca thu ngân: thu ngân mở ca, đóng ca với tiền kiểm đếm, xem kết quả đối soát ca của mình.
 // QL xem ca chi nhánh, xác nhận chốt ca thu ngân tự đóng, đóng ca thay kèm người làm chứng (CA-03, CA-04);
-// HQ xem mọi chi nhánh, xác nhận chốt ca QL đóng thay (quyết định 14). QL, HQ duyệt hoàn tiền mặt cho giao dịch
+// HQ xem mọi chi nhánh, xác nhận chốt ca QL đóng thay, duyệt thay ca thu ngân tự đóng kèm lý do (quyết định 14). QL, HQ duyệt hoàn tiền mặt cho giao dịch
 // hoàn điện tử thất bại (TH-04). Tiền mặt kỳ vọng, chênh lệch, tổng theo phương thức lấy từ API (dẫn xuất).
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -29,7 +29,8 @@ import {
   optionsOf,
 } from "../../labels";
 import { FormModal, moneyColumn, useWrite } from "../../ui";
-import { canApproveCashRefund, shiftActions } from "./shiftActions";
+import { ReconcileModal } from "../payments/PendingTransactions";
+import { canApproveCashRefund, canReconcile, shiftActions } from "./shiftActions";
 
 type Shift = Schemas["Shift"];
 type ShiftDetail = Schemas["ShiftDetail"];
@@ -58,10 +59,6 @@ export const txnColumns = [
     render: (v: Schemas["TxnStatus"]) => <Tag>{TXN_STATUS_LABEL[v]}</Tag>,
   },
 ];
-
-const txnTable = (rows: Txn[]) => (
-  <Table rowKey="txn_id" size="small" pagination={false} dataSource={rows} columns={txnColumns} />
-);
 
 /** Giao dịch thất bại; QL, HQ duyệt hoàn tiền mặt cho giao dịch hoàn điện tử thất bại (TH-04). */
 function FailedTransactions({ rows }: { rows: Txn[] }) {
@@ -120,6 +117,37 @@ function FailedTransactions({ rows }: { rows: Txn[] }) {
   );
 }
 
+/** Giao dịch Chờ kết quả của ca; ca đã đóng thì thu ngân tra soát tại đây để ca chốt được (CA-03). */
+function PendingInShift({ shift }: { shift: ShiftDetail }) {
+  const role = useAuth().user?.role;
+  const [reconciling, setReconciling] = useState<Txn | null>(null);
+  return (
+    <>
+      <Table<Txn>
+        rowKey="txn_id"
+        size="small"
+        pagination={false}
+        dataSource={shift.pending}
+        scroll={{ x: true }}
+        columns={[
+          ...txnColumns,
+          {
+            title: "Thao tác",
+            render: (_, txn) =>
+              role &&
+              canReconcile(shift, txn, role) && (
+                <Button size="small" onClick={() => setReconciling(txn)}>
+                  Tra soát
+                </Button>
+              ),
+          },
+        ]}
+      />
+      {reconciling && <ReconcileModal txn={reconciling} onClose={() => setReconciling(null)} />}
+    </>
+  );
+}
+
 /** Kết quả đối soát của một ca (CA-03), số liệu nguyên từ API. */
 function ShiftResult({ shift }: { shift: ShiftDetail }) {
   return (
@@ -150,6 +178,7 @@ function ShiftResult({ shift }: { shift: ShiftDetail }) {
         {shift.settled_at && (
           <Descriptions.Item label="Xác nhận">
             {dateTime(shift.settled_at)} bởi {shift.confirmed_by}
+            {shift.confirm_reason && `: ${shift.confirm_reason}`}
           </Descriptions.Item>
         )}
       </Descriptions>
@@ -171,7 +200,7 @@ function ShiftResult({ shift }: { shift: ShiftDetail }) {
         ]}
       />
       <h4>Giao dịch chờ kết quả</h4>
-      {txnTable(shift.pending)}
+      <PendingInShift shift={shift} />
       <h4>Giao dịch thất bại</h4>
       <FailedTransactions rows={shift.failed} />
     </>
@@ -216,9 +245,12 @@ export function ShiftsPage() {
       ),
     ["shifts"],
   );
+  const [hqConfirming, setHqConfirming] = useState<Shift | null>(null);
   const confirm = useWrite(
-    (shiftId: string) =>
-      unwrap(client.POST("/shifts/{shift_id}/confirm", { params: { path: { shift_id: shiftId } } })),
+    ({ shiftId, body }: { shiftId: string; body?: Schemas["ShiftConfirm"] }) =>
+      unwrap(
+        client.POST("/shifts/{shift_id}/confirm", { params: { path: { shift_id: shiftId } }, body }),
+      ),
     ["shifts", "reports"],
   );
   const proxyClose = useWrite(
@@ -238,7 +270,11 @@ export function ShiftsPage() {
     render: (_: unknown, row: Shift) =>
       role &&
       shiftActions(row, role).map((action) =>
-        action === "confirm" ? (
+        action === "confirm" && role === "HQ" && !row.proxy_closed_by ? (
+          <Button key={action} size="small" type="primary" onClick={() => setHqConfirming(row)}>
+            Duyệt thay chốt ca
+          </Button>
+        ) : action === "confirm" ? (
           <Popconfirm
             key={action}
             title={`Xác nhận chốt ca ${row.shift_id}?`}
@@ -247,7 +283,7 @@ export function ShiftsPage() {
                 ? `Duyệt thay ca QL đóng thay. Lý do: ${row.proxy_reason}`
                 : "Đã nhận tiền và kiểm tra kết quả đối soát"
             }
-            onConfirm={() => confirm.mutate(row.shift_id)}
+            onConfirm={() => confirm.mutate({ shiftId: row.shift_id })}
           >
             <Button size="small" type="primary">
               Xác nhận chốt
@@ -361,6 +397,23 @@ export function ShiftsPage() {
           </Form.Item>
           {/* Chênh lệch do API tính; thiếu lý do khi chênh lệch khác 0 thì API báo lỗi CA-02 */}
           <Form.Item label="Lý do chênh lệch (bắt buộc nếu có chênh lệch)" name="variance_reason">
+            <Input.TextArea />
+          </Form.Item>
+        </FormModal>
+      )}
+
+      {hqConfirming && (
+        <FormModal<Schemas["ShiftConfirm"]>
+          title={`Duyệt thay xác nhận chốt ca ${hqConfirming.shift_id}`}
+          onClose={() => setHqConfirming(null)}
+          onSubmit={(body) => confirm.mutateAsync({ shiftId: hqConfirming.shift_id, body })}
+        >
+          <p>Chỉ dùng khi QL chi nhánh vắng mặt (ma trận 2.2).</p>
+          <Form.Item
+            label="Lý do duyệt thay"
+            name="confirm_reason"
+            rules={[{ required: true, whitespace: true }]}
+          >
             <Input.TextArea />
           </Form.Item>
         </FormModal>

@@ -278,6 +278,7 @@ async def test_confirm_shift(client: httpx.AsyncClient, staff: None) -> None:
     assert shift["status"] == ShiftStatus.SETTLED
     assert shift["confirmed_by"] == MANAGER_ID
     assert datetime.fromisoformat(shift["settled_at"]) == NOW
+    assert shift["confirm_reason"] is None
     response = await client.post(f"/shifts/{shift_id}/confirm", headers=ql)
     _error(response, ErrorCode.INVALID_STATE, "CA-03")
 
@@ -292,13 +293,43 @@ async def test_confirm_open_shift(client: httpx.AsyncClient, staff: None) -> Non
 
 
 async def test_confirm_shift_forbidden(client: httpx.AsyncClient, staff: None) -> None:
-    """K-01: QL chi nhánh khác, thu ngân không xác nhận; K-02: HQ không chốt ca thu ngân tự đóng."""
+    """K-01: QL chi nhánh khác, thu ngân không xác nhận chốt ca."""
     shift_id = await _closed(client)
-    for employee_id, rule in ((MANAGER_2, "K-01"), (CASHIER_ID, "K-01"), (HQ_ID, "K-02")):
+    for employee_id, rule in ((MANAGER_2, "K-01"), (CASHIER_ID, "K-01")):
         response = await client.post(
             f"/shifts/{shift_id}/confirm", headers=await login_as(client, employee_id)
         )
         _error(response, ErrorCode.FORBIDDEN, rule)
+
+
+async def test_hq_confirm_requires_reason(client: httpx.AsyncClient, staff: None) -> None:
+    """2.2, K-02, K-03: trụ sở duyệt thay xác nhận chốt ca thu ngân tự đóng, bắt buộc lý do."""
+    shift_id = await _closed(client)
+    hq = await login_as(client, HQ_ID)
+    for body in (None, {}, {"confirm_reason": "   "}):
+        response = await client.post(f"/shifts/{shift_id}/confirm", json=body, headers=hq)
+        _error(response, ErrorCode.VALIDATION_ERROR, "K-02")
+    response = await client.post(
+        f"/shifts/{shift_id}/confirm", json={"confirm_reason": "QL nghỉ phép"}, headers=hq
+    )
+    assert response.status_code == 200, response.text
+    shift = response.json()
+    assert shift["status"] == ShiftStatus.SETTLED
+    assert shift["confirmed_by"] == HQ_ID
+    assert shift["confirm_reason"] == "QL nghỉ phép"
+    assert shift["settled_at"] is not None
+
+
+async def test_manager_confirm_reason_optional(client: httpx.AsyncClient, staff: None) -> None:
+    """K-03: QL xác nhận chốt ghi lý do nếu có (không có thì để trống, xem test_confirm_shift)."""
+    shift_id = await _closed(client)
+    response = await client.post(
+        f"/shifts/{shift_id}/confirm",
+        json={"confirm_reason": "Đã nhận tiền"},
+        headers=await login_as(client, MANAGER_ID),
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["confirm_reason"] == "Đã nhận tiền"
 
 
 # ---------------------------------------------------------------- Xem ca

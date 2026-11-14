@@ -191,8 +191,9 @@ Các điểm đặc tả để trống ở mức triển khai, đã được ng�
     do; giao diện gợi ý sẵn các lý do thường gặp. Nhập hàng từ kho tổng/NCC cho sản phẩm Ngừng bán được phép. Lý do
     QL từ chối phiếu kho (K-03) lưu ở cột mới `stock_slips.decision_reason` (migration 003); `approved_by` lưu người
     quyết định cả khi duyệt lẫn từ chối.
-14. Vòng 6 (duyệt 13/11/2026): ca thu ngân tự đóng do QL chi nhánh xác nhận chốt; ca QL đóng thay (CA-04) chỉ trụ sở
-    xác nhận, nên trụ sở không xác nhận thay ca thường và không cần cột lý do mới. Người làm chứng khi đóng ca thay là
+14. Vòng 6 (duyệt 13/11/2026, sửa 14/11/2026 theo đặc tả 2.2): ca thu ngân tự đóng do QL chi nhánh xác nhận chốt,
+    trụ sở duyệt thay được và bắt buộc lý do (`shifts.confirm_reason`, migration 004; QL ghi lý do tùy chọn); ca QL
+    đóng thay (CA-04) chỉ trụ sở xác nhận, không cần lý do mới (lý do là `proxy_reason`). Người làm chứng khi đóng ca thay là
     nhân viên Đang làm cùng chi nhánh, khác QL đóng thay và khác thu ngân của ca. Giao dịch thu tiền mặt: thu ngân xác
     nhận `SUCCESS` (đã nhận đủ) hoặc `FAILED` (khách không đưa tiền, nhả hàng giữ). Hóa đơn phát hành với
     `print_count` = 0; mỗi lần in (kể cả lần đầu) cộng 1.
@@ -219,7 +220,7 @@ Giả định của người dựng khung, **chưa được người dùng xác 
 - Vòng 10 (lượt QL): QL không có quyền 6.1 nên không xem được danh sách nhân viên; khi đóng ca thay, người làm
   chứng nhập bằng mã nhân viên và API kiểm tra CA-04. Giao dịch hoàn điện tử Thất bại chỉ có trong `failed` của
   `GET /shifts/{shift_id}`, nên nút duyệt hoàn tiền mặt nằm trong chi tiết ca. HQ xác nhận chốt ca đóng thay không
-  nhập lý do mới (`confirm` không có body, quyết định 14); lý do là `proxy_reason`, hiện lúc xác nhận.
+  nhập lý do mới (quyết định 14); lý do là `proxy_reason`, hiện lúc xác nhận.
 - Vòng 10 (dữ liệu demo): `make seed-demo` tạo qua API; mật khẩu demo là mật khẩu tạm do 6.3 sinh, chỉ in lúc
   cấp. Tồn đầu kỳ (20 mỗi sản phẩm A..D tại CN1, giá 100.000) và 3 khách chỉ tạo ở lần cấp tài khoản NV kho, NVBH.
 
