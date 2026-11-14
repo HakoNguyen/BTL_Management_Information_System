@@ -115,8 +115,16 @@ async def _write_items(
 
 
 async def create_order(conn: asyncpg.Connection, body: OrderCreate, user: CurrentUser) -> Order:
-    """BH-01: đơn Đang lập thuộc chi nhánh và người lập, đúng một mã khách."""
+    """BH-01: đơn Đang lập thuộc chi nhánh và người lập, đúng một mã khách.
+    NV-04: chi nhánh Ngừng hoạt động không lập đơn."""
     async with conn.transaction():
+        branch_status = await conn.fetchval(
+            "SELECT status FROM branches WHERE branch_id = $1", user.branch_id
+        )
+        if branch_status != BranchStatus.ACTIVE:
+            raise AppError(
+                ErrorCode.RULE_VIOLATION, "Chi nhánh Ngừng hoạt động không lập đơn", rule="NV-04"
+            )
         if not await conn.fetchval(
             "SELECT 1 FROM customers WHERE customer_id = $1", body.customer_id
         ):

@@ -243,6 +243,20 @@ async def test_confirm_inactive_branch(
     _error(response, ErrorCode.RULE_VIOLATION, "BH-02")
 
 
+async def test_create_inactive_branch(
+    client: httpx.AsyncClient, conn: asyncpg.Connection, world: None
+) -> None:
+    """NV-04: chi nhánh Ngừng hoạt động không lập đơn."""
+    headers = await login_as(client, SALES_ID)
+    await conn.execute(
+        "UPDATE branches SET status = $1 WHERE branch_id = $2", BranchStatus.INACTIVE, BRANCH_1
+    )
+    body = {"customer_id": "KHLE", "items": [{"product_id": "A", "quantity": 1}]}
+    response = await client.post("/orders", json=body, headers=headers)
+    _error(response, ErrorCode.RULE_VIOLATION, "NV-04")
+    assert await conn.fetchval("SELECT count(*) FROM orders") == 0
+
+
 async def test_reopen_and_cancel_states(
     client: httpx.AsyncClient, conn: asyncpg.Connection, world: None
 ) -> None:

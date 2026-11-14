@@ -9,11 +9,12 @@ Mức ảnh hưởng: **Cao** = sai tiền, tồn hoặc làm kẹt nghiệp v�
 
 ## A. Sai so với đặc tả – sửa trước
 
-- [ ] **A1. Chi nhánh Ngừng hoạt động vẫn lập được đơn** (NV-04). Mức: Thấp.
+- [x] **A1. Chi nhánh Ngừng hoạt động vẫn lập được đơn** (NV-04). Mức: Thấp.
   - Chỗ lỗi: `api/services/orders.py:117` (`create_order`) không đọc `branches.status`; đơn chỉ bị chặn khi chốt (`:164`).
   - Ảnh hưởng: chỉ sinh đơn Đang lập rác, không chốt, không thu tiền được và bị tự hủy lúc đóng cửa. Không sai tiền, tồn.
   - Cách sửa: kiểm trạng thái chi nhánh trong `create_order`, trả `RULE_VIOLATION` `rule` = NV-04 (giống `confirm_order`).
-  - Test: `tests/orders/test_orders.py` thêm `test_create_inactive_branch`.
+  - Test: `tests/orders/test_orders.py` thêm `test_create_inactive_branch`. **Đã xong**, chứng minh bởi
+    `test_create_inactive_branch`.
 
 - [ ] **A2. Khách lẻ (KHLE) không có hóa đơn vẫn trả được hàng** (TH-01). Mức: Vừa.
   - Chỗ lỗi: `api/services/returns.py` (`create_return`, khoảng dòng 204–262) không xét khách KHLE;
