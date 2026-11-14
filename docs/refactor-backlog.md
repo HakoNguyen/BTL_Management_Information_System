@@ -27,11 +27,12 @@ Mức ảnh hưởng: **Cao** = sai tiền, tồn hoặc làm kẹt nghiệp v�
   - **Đã xong** (`invoice_presented` chỉ ở request, không lưu CSDL), chứng minh bởi `test_walk_in_needs_invoice`,
     `test_registered_customer_without_invoice`.
 
-- [ ] **A3. Lập yêu cầu bổ sung (4.4) không hiện tồn và ngưỡng hiện tại.** Mức: Thấp.
+- [x] **A3. Lập yêu cầu bổ sung (4.4) không hiện tồn và ngưỡng hiện tại.** Mức: Thấp.
   - Chỗ lỗi: `web/src/features/inventory/ReplenishmentPage.tsx` dùng `ItemsField`, chỉ hiện "khả dụng"
     (`web/src/features/orders/ItemsField.tsx:47–52`).
   - Ảnh hưởng: chỉ giao diện; số liệu vẫn xem được ở trang Tồn kho chi nhánh.
   - Cách sửa: ở trang yêu cầu bổ sung, hiện tồn và ngưỡng của sản phẩm đang chọn (lấy từ `GET /stock`), không đổi API.
+  - **Đã xong** (`ItemsField withLevels`), chứng minh bởi `web/src/features/orders/stockText.test.ts`.
 
 - [x] **A4. Giao diện không tra soát được giao dịch Chờ kết quả của ca đã đóng.** Mức: Vừa (gần Cao khi chạy thật).
   - Chỗ lỗi: `web/src/features/payments/PendingTransactions.tsx:19` chỉ dùng `useCurrentShift()` (ca đang mở);

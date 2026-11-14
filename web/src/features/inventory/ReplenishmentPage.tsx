@@ -84,7 +84,7 @@ export function ReplenishmentPage() {
           >
             <Input />
           </Form.Item>
-          <ItemsField />
+          <ItemsField withLevels />
         </FormModal>
       )}
     </Card>
