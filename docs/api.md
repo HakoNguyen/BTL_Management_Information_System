@@ -292,7 +292,8 @@ khác trả `FORBIDDEN` `rule` = K-01.
 | `ShiftOpen` | `opening_cash` (≥ 0, CA-01) |
 | `ShiftClose` | `counted_cash` (≥ 0), `variance_reason` (bắt buộc khi chênh lệch khác 0, CA-02) |
 | `ShiftProxyClose` | `counted_cash`, `variance_reason` như `ShiftClose`; `witness_id`, `proxy_reason` (bắt buộc, CA-04) |
-| `Shift` (response) | `shift_id`, `branch_id`, `cashier_id`, `status` (`ShiftStatus`), `opened_at`, `closed_at`, `settled_at`, `opening_cash`, `counted_cash`, `variance_reason`, `proxy_closed_by`, `witness_id`, `proxy_reason`, `confirmed_by`; dẫn xuất (CA-02): `expected_cash`, `variance` (null khi chưa kiểm đếm) |
+| `ShiftConfirm` | `confirm_reason` (bắt buộc khi HQ xác nhận ca thu ngân tự đóng, K-02; còn lại tùy chọn) |
+| `Shift` (response) | `shift_id`, `branch_id`, `cashier_id`, `status` (`ShiftStatus`), `opened_at`, `closed_at`, `settled_at`, `opening_cash`, `counted_cash`, `variance_reason`, `proxy_closed_by`, `witness_id`, `proxy_reason`, `confirmed_by`, `confirm_reason`; dẫn xuất (CA-02): `expected_cash`, `variance` (null khi chưa kiểm đếm) |
 | `ShiftMethodTotal` | `type` (`TxnType`), `method` (`TxnMethod`), `count`, `amount` |
 | `ShiftDetail` (response) | các trường của `Shift`; kết quả đối soát (CA-03): `cash_collected`, `cash_refunded` (Σ thu, hoàn tiền mặt Thành công), `electronic` (`ShiftMethodTotal[]`, giao dịch điện tử Thành công theo loại và phương thức), `failed`, `pending` (`Transaction[]`) |
 | `Transaction` (response) | `txn_id`, `order_id`, `return_id`, `shift_id`, `type`, `method`, `amount`, `status` (`TxnStatus`), `created_at`, `resolved_at`, `reference_code`, `cash_refund_approved_by`, `cash_refund_reason` |
@@ -311,7 +312,7 @@ khác trả `FORBIDDEN` `rule` = K-01.
 | `GET /shifts?status=…` | → `Shift[]` mới nhất trước: HQ mọi chi nhánh, QL chi nhánh mình, TN ca của mình | |
 | `GET /shifts/{shift_id}` | → `ShiftDetail` | `NOT_FOUND`; `FORBIDDEN` K-01 |
 | `POST /shifts/{shift_id}/proxy-close` | `ShiftProxyClose` → `ShiftDetail` `AWAITING_CONFIRMATION`, ghi `proxy_closed_by`, `witness_id`, `proxy_reason` | như `close` (trừ ca của người khác); `RULE_VIOLATION` CA-04 (người làm chứng không phải nhân viên Đang làm cùng chi nhánh, hoặc trùng QL đóng thay, trùng thu ngân của ca) |
-| `POST /shifts/{shift_id}/confirm` | → `ShiftDetail` `SETTLED`, ghi `settled_at`, `confirmed_by`. Ca thu ngân tự đóng: QL chi nhánh xác nhận. Ca QL đóng thay: chỉ HQ xác nhận (CA-04) | `INVALID_STATE` CA-03 (không ở `AWAITING_CONFIRMATION`); `RULE_VIOLATION` CA-03 (còn giao dịch `PENDING`); `FORBIDDEN` CA-04 (QL xác nhận ca đóng thay), K-02 (HQ xác nhận ca thu ngân tự đóng) |
+| `POST /shifts/{shift_id}/confirm` | `ShiftConfirm` (body tùy chọn) → `ShiftDetail` `SETTLED`, ghi `settled_at`, `confirmed_by`, `confirm_reason`. Ca thu ngân tự đóng: QL chi nhánh xác nhận, HQ duyệt thay kèm lý do (2.2). Ca QL đóng thay: chỉ HQ xác nhận (CA-04) | `INVALID_STATE` CA-03 (không ở `AWAITING_CONFIRMATION`); `RULE_VIOLATION` CA-03 (còn giao dịch `PENDING`); `FORBIDDEN` CA-04 (QL xác nhận ca đóng thay); `VALIDATION_ERROR` K-02 (HQ xác nhận ca thu ngân tự đóng mà thiếu lý do) |
 | `POST /orders/{order_id}/payments` | `PaymentCreate` → `201 Transaction` `COLLECT` `PENDING`, số tiền = tổng đơn, gắn ca `OPEN` của thu ngân; giữ hàng trước (TT-03); điện tử thì gọi cổng sau khi commit | `NOT_FOUND`; `FORBIDDEN` K-01; `INVALID_STATE` TT-01 (đơn không ở `AWAITING_PAYMENT`), TT-02 (đơn đang có giao dịch `PENDING`); `RULE_VIOLATION` TT-01 (thu ngân không có ca `OPEN` tại chi nhánh của đơn); `INSUFFICIENT_STOCK` TK-03 (không tạo giao dịch) |
 | `POST /transactions/{txn_id}/confirm-cash` | `CashConfirm` → `Transaction` | `NOT_FOUND`; `FORBIDDEN` K-01; `RULE_VIOLATION` TT-02 (không phải tiền mặt); `INVALID_STATE` TT-02 (đã có kết quả) |
 | `POST /transactions/{txn_id}/reconcile` | `Reconcile` → `Transaction` | như `confirm-cash` nhưng `RULE_VIOLATION` TT-02 khi là tiền mặt; `VALIDATION_ERROR` TT-02 (thiếu mã tham chiếu); `DUPLICATE` TT-02 (mã tham chiếu đã gắn giao dịch khác) |
@@ -330,7 +331,7 @@ chi nhánh khác trả `FORBIDDEN` `rule` = K-01; HQ xem và quyết định đ�
 | Model | Trường |
 | --- | --- |
 | `ReturnItemInput` | `product_id`, `good_qty`, `defective_qty` (nguyên ≥ 0, tổng > 0, TH-02) |
-| `ReturnCreate` | `order_id`, `reason` (bắt buộc, TH-02), `items` (≥ 1 dòng, mỗi sản phẩm một dòng) |
+| `ReturnCreate` | `order_id`, `reason` (bắt buộc, TH-02), `items` (≥ 1 dòng, mỗi sản phẩm một dòng), `invoice_presented` (khách xuất trình hóa đơn/mã đơn, mặc định `false`; bắt buộc `true` với đơn của KHLE, TH-01; không lưu vào CSDL) |
 | `ReturnItem` (response) | `product_id`, `good_qty`, `defective_qty`, `unit_price` (đơn giá chốt trên đơn gốc), `amount` (= (tốt + lỗi) × đơn giá chốt) |
 | `ReturnSlip` (response) | `return_id`, `order_id`, `branch_id` (của đơn gốc), `created_by`, `created_at`, `reason`, `status` (`ReturnStatus`), `decided_by` (null = Hệ thống tự từ chối), `decided_at`, `decision_note`; dẫn xuất: `value` (giá trị phiếu, TH-04), `refund_status` (`RefundStatus`; null khi phiếu chưa `APPROVED`), `items` (`ReturnItem[]`) |
 | `RefundStatus` (enum, dẫn xuất, [db.md](db.md) mục 6) | `NOT_REFUNDED` = Chưa hoàn; `PENDING` = Đang chờ kết quả; `REFUNDED` = Đã hoàn |
@@ -339,7 +340,7 @@ chi nhánh khác trả `FORBIDDEN` `rule` = K-01; HQ xem và quyết định đ�
 
 | Endpoint | Request → response | Lỗi nghiệp vụ |
 | --- | --- | --- |
-| `POST /returns` | `ReturnCreate` → `201 ReturnSlip` `PENDING`; hàng vẫn do khách giữ | `NOT_FOUND` (đơn); `FORBIDDEN` K-01; `INVALID_STATE` TH-01 (đơn không ở `COMPLETED`/`PARTIALLY_RETURNED`); `RULE_VIOLATION` TH-01 (chi nhánh Ngừng hoạt động; quá `completed_at` + 7 ngày); `VALIDATION_ERROR` TH-02 (trùng sản phẩm; dòng có tổng = 0); `RULE_VIOLATION` TH-02 (sản phẩm không có trong đơn, `details.product_ids`; vượt lượng còn được trả, `details.lines` gồm `product_id`, `requested`, `remaining`) |
+| `POST /returns` | `ReturnCreate` → `201 ReturnSlip` `PENDING`; hàng vẫn do khách giữ | `NOT_FOUND` (đơn); `FORBIDDEN` K-01; `INVALID_STATE` TH-01 (đơn không ở `COMPLETED`/`PARTIALLY_RETURNED`); `RULE_VIOLATION` TH-01 (chi nhánh Ngừng hoạt động; quá `completed_at` + 7 ngày; đơn của KHLE mà `invoice_presented` = `false`); `VALIDATION_ERROR` TH-02 (trùng sản phẩm; dòng có tổng = 0); `RULE_VIOLATION` TH-02 (sản phẩm không có trong đơn, `details.product_ids`; vượt lượng còn được trả, `details.lines` gồm `product_id`, `requested`, `remaining`) |
 | `GET /returns?status=…&refund_status=…` | → `ReturnSlip[]` mới nhất trước: HQ mọi chi nhánh, vai trò khác chi nhánh mình. Phiếu Đã duyệt chưa hoàn xong (TH-05): `status=APPROVED` và `refund_status=NOT_REFUNDED` | |
 | `GET /returns/{return_id}` | → `ReturnSlip` | `NOT_FOUND`; `FORBIDDEN` K-01 |
 | `POST /returns/{return_id}/approve` | `ReturnDecision` → `ReturnSlip` `APPROVED`, ghi `decided_by`, `decided_at`, `decision_note`. Cùng transaction: kiểm tra lại TH-02, `inventory.receive_return` cho số lượng tốt (không có hàng tốt thì không lập phiếu kho), `orders.mark_returned` (TH-05) | `NOT_FOUND`; `FORBIDDEN` K-01, K-02 (người duyệt là người lập); `VALIDATION_ERROR` K-02 (HQ thiếu lý do); `INVALID_STATE` TH-03 (không ở `PENDING`); `RULE_VIOLATION` TH-02 |

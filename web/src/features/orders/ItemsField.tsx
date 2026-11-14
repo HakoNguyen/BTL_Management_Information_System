@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, InputNumber, Select, Space, message } from "antd";
 import { client, unwrap } from "../../api/client";
 import { PRODUCT_STATUS_LABEL } from "../../labels";
+import { stockText } from "./stockText";
 
 /** Mã khách: gõ thẳng (KHLE cho khách lẻ) hoặc tra theo số điện thoại (2.3). */
 export function CustomerField() {
@@ -37,19 +38,20 @@ export function CustomerField() {
   );
 }
 
-/** Các dòng `items`: mỗi sản phẩm một dòng, số lượng nguyên > 0 (BH-01). */
-export function ItemsField() {
+/** Các dòng `items`: mỗi sản phẩm một dòng, số lượng nguyên > 0 (BH-01).
+ * `withLevels`: hiện tồn và ngưỡng thay cho tồn khả dụng (yêu cầu bổ sung 4.4). */
+export function ItemsField({ withLevels = false }: { withLevels?: boolean }) {
   const products = useQuery({
     queryKey: ["products"],
     queryFn: () => unwrap(client.GET("/products")),
   });
   const stock = useQuery({ queryKey: ["stock"], queryFn: () => unwrap(client.GET("/stock")) });
-  const available = new Map((stock.data ?? []).map((line) => [line.product_id, line.available]));
+  const levels = new Map((stock.data ?? []).map((line) => [line.product_id, line]));
   const options = (products.data ?? []).map((product) => ({
     value: product.product_id,
     label: [
       `${product.product_id} – ${product.name}`,
-      `khả dụng ${available.get(product.product_id) ?? "?"}`,
+      stockText(levels.get(product.product_id), withLevels),
       product.status === "DISCONTINUED" ? PRODUCT_STATUS_LABEL.DISCONTINUED : "",
     ]
       .filter(Boolean)

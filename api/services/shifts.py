@@ -26,6 +26,7 @@ from common.models import (
     CurrentUser,
     Shift,
     ShiftClose,
+    ShiftConfirm,
     ShiftDetail,
     ShiftMethodTotal,
     ShiftOpen,
@@ -268,9 +269,13 @@ async def proxy_close(
 # ---------------------------------------------------------------- CA-03 Xác nhận chốt
 
 
-async def confirm_shift(conn: asyncpg.Connection, shift_id: str, user: CurrentUser) -> ShiftDetail:
+async def confirm_shift(
+    conn: asyncpg.Connection, shift_id: str, body: ShiftConfirm, user: CurrentUser
+) -> ShiftDetail:
     """CA-03: ca Chờ xác nhận, không còn giao dịch Chờ kết quả. Ca thu ngân tự đóng do QL chi nhánh
-    xác nhận; ca QL đóng thay chỉ trụ sở xác nhận (CA-04, K-02)."""
+    xác nhận, trụ sở duyệt thay kèm lý do (2.2, K-02); ca QL đóng thay chỉ trụ sở xác nhận
+    (CA-04)."""
+    reason = (body.confirm_reason or "").strip() or None
     async with conn.transaction():
         row = await _locked(conn, shift_id)
         _check_visible(row, user)
@@ -282,9 +287,9 @@ async def confirm_shift(conn: asyncpg.Connection, shift_id: str, user: CurrentUs
             raise AppError(
                 ErrorCode.FORBIDDEN, "Ca do QL đóng thay phải do trụ sở xác nhận", rule="CA-04"
             )
-        if not row["proxy_closed_by"] and user.role == Role.HQ:
+        if not row["proxy_closed_by"] and user.role == Role.HQ and reason is None:
             raise AppError(
-                ErrorCode.FORBIDDEN, "Ca thu ngân tự đóng do QL chi nhánh xác nhận", rule="K-02"
+                ErrorCode.VALIDATION_ERROR, "Trụ sở duyệt thay phải ghi lý do", rule="K-02"
             )
         if await conn.fetchval(
             "SELECT 1 FROM transactions WHERE shift_id = $1 AND status = $2",
@@ -293,13 +298,14 @@ async def confirm_shift(conn: asyncpg.Connection, shift_id: str, user: CurrentUs
         ):
             raise AppError(ErrorCode.RULE_VIOLATION, "Ca còn giao dịch Chờ kết quả", rule="CA-03")
         result = await conn.execute(
-            "UPDATE shifts SET status = $2, settled_at = $3, confirmed_by = $4"
+            "UPDATE shifts SET status = $2, settled_at = $3, confirmed_by = $4, confirm_reason = $6"
             " WHERE shift_id = $1 AND status = $5",
             shift_id,
             ShiftStatus.SETTLED,
             clock.now(),
             user.employee_id,
             ShiftStatus.AWAITING_CONFIRMATION,
+            reason,
         )
         if result != "UPDATE 1":
             raise AppError(ErrorCode.INVALID_STATE, f"Ca {shift_id} vừa đổi trạng thái")

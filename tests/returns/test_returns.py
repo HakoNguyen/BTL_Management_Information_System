@@ -163,6 +163,45 @@ async def test_product_not_in_order(client: httpx.AsyncClient, world: dict) -> N
     assert response.json()["details"]["product_ids"] == ["C"]
 
 
+async def test_walk_in_needs_invoice(client: httpx.AsyncClient, world: dict) -> None:
+    """TH-01: đơn của KHLE chỉ nhận trả khi khách xuất trình hóa đơn/mã đơn."""
+    order_id = world["order_id"]  # đơn KHLE
+    response = await create_return(
+        client, world["bh"], order_id, {"A": (1, 0)}, invoice_presented=False
+    )
+    _error(response, 422, "RULE_VIOLATION", "TH-01")
+    body = {
+        "order_id": order_id,
+        "reason": "Lỗi",
+        "items": [{"product_id": "A", "good_qty": 1, "defective_qty": 0}],
+    }
+    _error(
+        await client.post("/returns", json=body, headers=world["bh"]),
+        422,
+        "RULE_VIOLATION",
+        "TH-01",
+    )
+    response = await create_return(client, world["bh"], order_id, {"A": (1, 0)})
+    assert response.status_code == 201, response.text
+
+
+async def test_registered_customer_without_invoice(client: httpx.AsyncClient, world: dict) -> None:
+    """TH-01: khách có hồ sơ mất hóa đơn vẫn được nhận trả (tìm đơn qua 2.4)."""
+    response = await client.post(
+        "/customers",
+        json={"full_name": "Nguyễn Văn An", "phone": "0901000001"},
+        headers=world["bh"],
+    )
+    assert response.status_code == 201, response.text
+    order_id = await complete_order(
+        client, world["bh"], world["tn"], {"A": 1}, customer_id=response.json()["customer_id"]
+    )
+    response = await create_return(
+        client, world["bh"], order_id, {"A": (1, 0)}, invoice_presented=False
+    )
+    assert response.status_code == 201, response.text
+
+
 async def test_line_validation(client: httpx.AsyncClient, world: dict) -> None:
     """TH-02: mỗi sản phẩm một dòng; tốt + lỗi > 0."""
     body = {

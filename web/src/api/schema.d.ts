@@ -1688,6 +1688,11 @@ export interface components {
         };
         /** ReturnCreate */
         ReturnCreate: {
+            /**
+             * Invoice Presented
+             * @default false
+             */
+            invoice_presented: boolean;
             /** Items */
             items: components["schemas"]["ReturnItemInput"][];
             /** Order Id */
@@ -1821,6 +1826,8 @@ export interface components {
             cashier_id: string;
             /** Closed At */
             closed_at: string | null;
+            /** Confirm Reason */
+            confirm_reason: string | null;
             /** Confirmed By */
             confirmed_by: string | null;
             /** Counted Cash */
@@ -1857,6 +1864,11 @@ export interface components {
             /** Variance Reason */
             variance_reason?: string | null;
         };
+        /** ShiftConfirm */
+        ShiftConfirm: {
+            /** Confirm Reason */
+            confirm_reason?: string | null;
+        };
         /**
          * ShiftDetail
          * @description Ca kèm kết quả đối soát (CA-03).
@@ -1872,6 +1884,8 @@ export interface components {
             cashier_id: string;
             /** Closed At */
             closed_at: string | null;
+            /** Confirm Reason */
+            confirm_reason: string | null;
             /** Confirmed By */
             confirmed_by: string | null;
             /** Counted Cash */
@@ -4074,7 +4088,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ShiftConfirm"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

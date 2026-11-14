@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Schemas } from "../../api/client";
-import { canApproveCashRefund, shiftActions } from "./shiftActions";
+import { canApproveCashRefund, canReconcile, shiftActions } from "./shiftActions";
 
 const shift = (status: Schemas["ShiftStatus"], proxy_closed_by: string | null = null) => ({
   status,
@@ -13,9 +13,10 @@ test("ca Đang mở: chỉ QL được đóng ca thay (CA-04)", () => {
   expect(shiftActions(shift("OPEN"), "CASHIER")).toEqual([]);
 });
 
-test("ca thu ngân tự đóng: QL xác nhận, HQ không xác nhận thay (K-02, quyết định 14)", () => {
+test("ca thu ngân tự đóng: QL xác nhận, HQ duyệt thay kèm lý do (2.2, K-02, quyết định 14)", () => {
   expect(shiftActions(shift("AWAITING_CONFIRMATION"), "MANAGER")).toEqual(["confirm"]);
-  expect(shiftActions(shift("AWAITING_CONFIRMATION"), "HQ")).toEqual([]);
+  expect(shiftActions(shift("AWAITING_CONFIRMATION"), "HQ")).toEqual(["confirm"]);
+  expect(shiftActions(shift("AWAITING_CONFIRMATION"), "CASHIER")).toEqual([]);
 });
 
 test("ca QL đóng thay: chỉ HQ xác nhận (CA-04)", () => {
@@ -45,4 +46,15 @@ test("duyệt hoàn tiền mặt chỉ cho giao dịch hoàn điện tử Thất
   expect(canApproveCashRefund(txn({ status: "SUCCESS" }), "MANAGER")).toBe(false);
   expect(canApproveCashRefund(txn({ cash_refund_approved_by: "NV-QL1" }), "MANAGER")).toBe(false);
   expect(canApproveCashRefund(txn({}), "CASHIER")).toBe(false);
+});
+
+test("tra soát giao dịch điện tử Chờ kết quả trong ca Chờ xác nhận, chỉ thu ngân (TT-02, CA-03)", () => {
+  const pending = txn({ type: "COLLECT", status: "PENDING" });
+  expect(canReconcile(shift("AWAITING_CONFIRMATION"), pending, "CASHIER")).toBe(true);
+  expect(canReconcile(shift("AWAITING_CONFIRMATION"), pending, "MANAGER")).toBe(false);
+  expect(canReconcile(shift("OPEN"), pending, "CASHIER")).toBe(false);
+  expect(canReconcile(shift("SETTLED"), pending, "CASHIER")).toBe(false);
+  expect(canReconcile(shift("AWAITING_CONFIRMATION"), { ...pending, method: "CASH" }, "CASHIER")).toBe(
+    false,
+  );
 });

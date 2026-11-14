@@ -25,13 +25,6 @@ export function PendingTransactions({ type }: { type: Schemas["TxnType"] }) {
       ),
     TXN_KEYS,
   );
-  const reconcile = useWrite(
-    (body: Schemas["Reconcile"]) =>
-      unwrap(
-        client.POST("/transactions/{txn_id}/reconcile", { ...txnPath(reconciling!.txn_id), body }),
-      ),
-    TXN_KEYS,
-  );
 
   if (current.isPending) return null;
   if (!current.data)
@@ -83,34 +76,39 @@ export function PendingTransactions({ type }: { type: Schemas["TxnType"] }) {
         ]}
       />
 
-      {reconciling && (
-        <FormModal<Schemas["Reconcile"]>
-          title={`Tra soát giao dịch ${reconciling.txn_id}`}
-          initialValues={{ result: "SUCCESS" }}
-          onClose={() => setReconciling(null)}
-          onSubmit={reconcile.mutateAsync}
-        >
-          <Form.Item label="Kết quả" name="result" rules={[{ required: true }]}>
-            <Select
-              options={RESULTS.map((value) => ({ value, label: TXN_STATUS_LABEL[value] }))}
-            />
-          </Form.Item>
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, next) => prev.result !== next.result}
-          >
-            {({ getFieldValue }) => (
-              <Form.Item
-                label="Mã tham chiếu"
-                name="reference_code"
-                rules={[{ required: getFieldValue("result") === "SUCCESS", whitespace: true }]}
-              >
-                <Input />
-              </Form.Item>
-            )}
-          </Form.Item>
-        </FormModal>
-      )}
+      {reconciling && <ReconcileModal txn={reconciling} onClose={() => setReconciling(null)} />}
     </>
+  );
+}
+
+/** Tra soát giao dịch điện tử Chờ kết quả (TT-02); dùng cả ở chi tiết ca đã đóng (CA-03). */
+export function ReconcileModal({ txn, onClose }: { txn: Txn; onClose: () => void }) {
+  const reconcile = useWrite(
+    (body: Schemas["Reconcile"]) =>
+      unwrap(client.POST("/transactions/{txn_id}/reconcile", { ...txnPath(txn.txn_id), body })),
+    TXN_KEYS,
+  );
+  return (
+    <FormModal<Schemas["Reconcile"]>
+      title={`Tra soát giao dịch ${txn.txn_id}`}
+      initialValues={{ result: "SUCCESS" }}
+      onClose={onClose}
+      onSubmit={reconcile.mutateAsync}
+    >
+      <Form.Item label="Kết quả" name="result" rules={[{ required: true }]}>
+        <Select options={RESULTS.map((value) => ({ value, label: TXN_STATUS_LABEL[value] }))} />
+      </Form.Item>
+      <Form.Item noStyle shouldUpdate={(prev, next) => prev.result !== next.result}>
+        {({ getFieldValue }) => (
+          <Form.Item
+            label="Mã tham chiếu"
+            name="reference_code"
+            rules={[{ required: getFieldValue("result") === "SUCCESS", whitespace: true }]}
+          >
+            <Input />
+          </Form.Item>
+        )}
+      </Form.Item>
+    </FormModal>
   );
 }

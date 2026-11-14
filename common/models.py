@@ -355,6 +355,10 @@ class ShiftProxyClose(ShiftClose):
     proxy_reason: NonBlank
 
 
+class ShiftConfirm(BaseModel):
+    confirm_reason: str | None = None  # bắt buộc khi HQ duyệt thay ca thu ngân tự đóng (K-02)
+
+
 class Shift(BaseModel):
     shift_id: str
     branch_id: str
@@ -370,6 +374,7 @@ class Shift(BaseModel):
     witness_id: str | None
     proxy_reason: str | None
     confirmed_by: str | None
+    confirm_reason: str | None
     expected_cash: int  # dẫn xuất (CA-02)
     variance: int | None  # tiền kiểm đếm − tiền mặt kỳ vọng; null khi chưa kiểm đếm
 
@@ -456,6 +461,7 @@ class ReturnCreate(BaseModel):
     order_id: NonBlank
     reason: NonBlank  # TH-02
     items: list[ReturnItemInput] = Field(min_length=1)
+    invoice_presented: bool = False  # đơn của KHLE bắt buộc true (TH-01); không lưu CSDL
 
 
 class ReturnItem(BaseModel):

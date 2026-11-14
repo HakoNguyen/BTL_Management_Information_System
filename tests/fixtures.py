@@ -286,11 +286,14 @@ BANK_TEST_KEY = "khoa-cong-thanh-toan-test"
 
 
 async def create_awaiting_order(
-    client: httpx.AsyncClient, headers: dict[str, str], items: dict[str, int]
+    client: httpx.AsyncClient,
+    headers: dict[str, str],
+    items: dict[str, int],
+    customer_id: str = "KHLE",
 ) -> str:
-    """Lập và chốt đơn KHLE qua API (3.1); trả mã đơn Chờ thanh toán."""
+    """Lập và chốt đơn (mặc định KHLE) qua API (3.1); trả mã đơn Chờ thanh toán."""
     body = {
-        "customer_id": "KHLE",
+        "customer_id": customer_id,
         "items": [{"product_id": pid, "quantity": qty} for pid, qty in items.items()],
     }
     response = await client.post("/orders", json=body, headers=headers)
@@ -359,9 +362,10 @@ async def complete_order(
     cashier: dict[str, str],
     items: dict[str, int],
     method: TxnMethod = TxnMethod.CASH,
+    customer_id: str = "KHLE",
 ) -> str:
     """Lập, chốt, thu Thành công qua API (thu ngân phải có ca Đang mở); trả mã đơn Hoàn tất."""
-    order_id = await create_awaiting_order(client, sales, items)
+    order_id = await create_awaiting_order(client, sales, items, customer_id)
     await resolve_txn(
         client, cashier, await start_payment(client, cashier, order_id, method), TxnStatus.SUCCESS
     )
@@ -374,11 +378,14 @@ async def create_return(
     order_id: str,
     items: dict[str, tuple[int, int]],
     reason: str = "Khách không ưng",
+    invoice_presented: bool = True,
 ) -> httpx.Response:
-    """Lập phiếu trả (3.4); `items` là {mã SP: (số lượng tốt, số lượng lỗi)}."""
+    """Lập phiếu trả (3.4); `items` là {mã SP: (số lượng tốt, số lượng lỗi)}.
+    Mặc định khách xuất trình hóa đơn (TH-01)."""
     body = {
         "order_id": order_id,
         "reason": reason,
+        "invoice_presented": invoice_presented,
         "items": [
             {"product_id": pid, "good_qty": good, "defective_qty": bad}
             for pid, (good, bad) in items.items()

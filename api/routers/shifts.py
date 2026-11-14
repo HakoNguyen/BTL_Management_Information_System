@@ -9,7 +9,15 @@ from fastapi import APIRouter, Depends
 from services import shifts
 
 from common.constants import Role, ShiftStatus
-from common.models import CurrentUser, Shift, ShiftClose, ShiftDetail, ShiftOpen, ShiftProxyClose
+from common.models import (
+    CurrentUser,
+    Shift,
+    ShiftClose,
+    ShiftConfirm,
+    ShiftDetail,
+    ShiftOpen,
+    ShiftProxyClose,
+)
 
 router = APIRouter(tags=["shifts"])
 Cashier = Annotated[CurrentUser, Depends(require_role(Role.CASHIER))]
@@ -51,5 +59,7 @@ async def proxy_close(
 
 
 @router.post("/shifts/{shift_id}/confirm")
-async def confirm_shift(shift_id: str, user: Confirmer, conn: Conn) -> ShiftDetail:
-    return await shifts.confirm_shift(conn, shift_id, user)
+async def confirm_shift(
+    shift_id: str, user: Confirmer, conn: Conn, body: ShiftConfirm | None = None
+) -> ShiftDetail:
+    return await shifts.confirm_shift(conn, shift_id, body or ShiftConfirm(), user)
