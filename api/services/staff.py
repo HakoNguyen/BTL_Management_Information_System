@@ -324,6 +324,10 @@ async def assign_employee(
 # ---------------------------------------------------------------- 6.3 Tài khoản
 
 
+def _temporary_password() -> str:
+    return secrets.token_urlsafe(12)  # 16 ký tự; trả một lần để trụ sở bàn giao
+
+
 async def issue_account(conn: asyncpg.Connection, employee_id: str, username: str) -> AccountIssued:
     """NV-03: cấp một lần; tên đăng nhập duy nhất, kể cả với người đã nghỉ (không tái sử dụng)."""
     async with conn.transaction():
@@ -331,7 +335,7 @@ async def issue_account(conn: asyncpg.Connection, employee_id: str, username: st
         _require_working(employee, rule="NV-03")
         if employee["username"] is not None:
             raise AppError(ErrorCode.INVALID_STATE, "Nhân viên đã được cấp tài khoản", rule="NV-03")
-        password = secrets.token_urlsafe(12)  # 16 ký tự; trả một lần để trụ sở bàn giao
+        password = _temporary_password()
         try:
             result = await conn.execute(
                 "UPDATE employees SET username = $2, password_hash = $3, account_status = $4"
@@ -352,6 +356,37 @@ async def issue_account(conn: asyncpg.Connection, employee_id: str, username: st
         username=username,
         temporary_password=password,
         account_status=AccountStatus.ACTIVE,
+    )
+
+
+async def reset_password(conn: asyncpg.Connection, employee_id: str) -> AccountIssued:
+    """6.3: nhân viên quên mật khẩu thì trụ sở cấp lại mật khẩu tạm (quyết định 5, plan.md mục 7).
+
+    Giữ nguyên tên đăng nhập và trạng thái tài khoản: tài khoản Bị khóa vẫn khóa.
+    """
+    async with conn.transaction():
+        employee = await _lock_employee(conn, employee_id)
+        _require_working(employee, rule="NV-03")
+        if employee["username"] is None:
+            raise AppError(
+                ErrorCode.INVALID_STATE, "Nhân viên chưa được cấp tài khoản", rule="NV-03"
+            )
+        password = _temporary_password()
+        result = await conn.execute(
+            "UPDATE employees SET password_hash = $2"
+            " WHERE employee_id = $1 AND username IS NOT NULL",
+            employee_id,
+            hash_password(password),
+        )
+        if result != "UPDATE 1":
+            raise AppError(
+                ErrorCode.INVALID_STATE, "Nhân viên chưa được cấp tài khoản", rule="NV-03"
+            )
+    return AccountIssued(
+        employee_id=employee_id,
+        username=employee["username"],
+        temporary_password=password,
+        account_status=employee["account_status"],
     )
 
 

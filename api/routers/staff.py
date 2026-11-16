@@ -82,6 +82,11 @@ async def issue_account(
     return await staff.issue_account(conn, employee_id, body.username)
 
 
+@router.post("/employees/{employee_id}/account/reset-password")
+async def reset_password(employee_id: str, _: HqUser, conn: Conn) -> AccountIssued:
+    return await staff.reset_password(conn, employee_id)
+
+
 @router.post("/employees/{employee_id}/account/lock")
 async def lock_account(employee_id: str, _: HqUser, conn: Conn) -> Employee:
     return await staff.set_account_status(conn, employee_id, AccountStatus.LOCKED)

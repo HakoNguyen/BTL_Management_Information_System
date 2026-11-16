@@ -50,6 +50,11 @@ export function EmployeesPage() {
       unwrap(client.POST("/employees/{employee_id}/account", { ...path(id), body })),
     KEYS,
   );
+  const resetPassword = useWrite(
+    (employeeId: string) =>
+      unwrap(client.POST("/employees/{employee_id}/account/reset-password", path(employeeId))),
+    [], // danh sách nhân viên không đổi
+  );
   const lock = useWrite(
     (employeeId: string) =>
       unwrap(client.POST("/employees/{employee_id}/account/lock", path(employeeId))),
@@ -94,11 +99,10 @@ export function EmployeesPage() {
     </>
   );
 
-  const issueAccount = async (body: Schemas["AccountCreate"]) => {
-    const issued = await issue.mutateAsync(body);
-    // Mật khẩu tạm chỉ trả về một lần (6.3): hiện ngay để trụ sở bàn giao
+  // Mật khẩu tạm chỉ trả về một lần (6.3): hiện ngay để trụ sở bàn giao
+  const showPassword = (title: string, issued: Schemas["AccountIssued"]) =>
     Modal.success({
-      title: "Đã cấp tài khoản",
+      title,
       content: (
         <>
           <p>Tên đăng nhập: {issued.username}</p>
@@ -109,7 +113,12 @@ export function EmployeesPage() {
         </>
       ),
     });
-  };
+  const issueAccount = async (body: Schemas["AccountCreate"]) =>
+    showPassword("Đã cấp tài khoản", await issue.mutateAsync(body));
+  const reissuePassword = (employeeId: string) =>
+    resetPassword.mutate(employeeId, {
+      onSuccess: (issued) => showPassword("Đã cấp lại mật khẩu tạm", issued),
+    });
 
   return (
     <Card
@@ -183,6 +192,15 @@ export function EmployeesPage() {
                   {employee.account_status === "LOCKED" && (
                     <Popconfirm title="Mở khóa tài khoản?" onConfirm={() => unlock.mutate(target)}>
                       <Button size="small">Mở khóa</Button>
+                    </Popconfirm>
+                  )}
+                  {employee.account_status !== null && (
+                    <Popconfirm
+                      title="Cấp lại mật khẩu tạm?"
+                      description="Mật khẩu cũ hết hiệu lực ngay."
+                      onConfirm={() => reissuePassword(target)}
+                    >
+                      <Button size="small">Cấp lại mật khẩu</Button>
                     </Popconfirm>
                   )}
                   <Popconfirm

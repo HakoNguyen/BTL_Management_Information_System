@@ -173,7 +173,10 @@ Các điểm đặc tả để trống ở mức triển khai, đã được ng�
 3. Mã chứng từ: tiền tố + 6 chữ số tăng dần ([db.md](db.md) mục 7). Mã sản phẩm, nhóm, nhân viên, chi nhánh do trụ sở nhập.
 4. Đăng nhập bằng token ký HMAC; mỗi request đọc lại nhân viên từ CSDL để kiểm tra khóa, vai trò, chi nhánh (K-01).
 5. Tài khoản trụ sở đầu tiên lấy từ `.env`, tạo khi api khởi động. Chức năng 6.3 sinh mật khẩu tạm. Không có chức năng
-   nhân viên tự đổi mật khẩu vì nằm ngoài 27 chức năng.
+   nhân viên tự đổi mật khẩu vì nằm ngoài 27 chức năng. Bổ sung 16/11/2026: nhân viên quên mật khẩu thì trụ sở cấp
+   lại mật khẩu tạm (6.3, `…/account/reset-password`): chỉ cho nhân viên Đang làm đã có tài khoản; giữ nguyên tên đăng
+   nhập và trạng thái tài khoản (Bị khóa vẫn khóa); không hủy phiên đang mở (nghi lộ thì khóa tài khoản); không lưu
+   nhật ký cấp lại.
 6. Cảnh báo 5.4 tính ngay lúc QL hoặc NV kho mở trang; không lưu, không cần lịch chạy mỗi sáng, vì nhóm 5 không có kho riêng.
 7. In hóa đơn là trang HTML in từ trình duyệt.
 8. Ngân hàng/Cổng thanh toán được giả lập bằng container `bank-mock`.

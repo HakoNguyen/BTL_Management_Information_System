@@ -65,6 +65,7 @@ Viết tắt vai trò: HQ = Trụ sở, QL = `MANAGER`, BH = `SALES`, TN = `CASH
 | 6.2 | `PUT /employees/{employee_id}/assignment` | HQ | NV-02 |
 | 6.3 | `POST /employees/{employee_id}/account` | HQ | NV-03 |
 | 6.3 | `POST /employees/{employee_id}/account/lock`, `…/account/unlock` | HQ | NV-03 |
+| 6.3 | `POST /employees/{employee_id}/account/reset-password` | HQ | NV-03 |
 
 Trường (chốt ở vòng 1). `?` là trường không bắt buộc; ở `PATCH`, trường không gửi thì giữ nguyên.
 
@@ -93,6 +94,7 @@ Trường (chốt ở vòng 1). `?` là trường không bắt buộc; ở `PATC
 | `PUT /employees/{employee_id}/assignment` | `AssignmentRequest` → `Employee` | `NOT_FOUND`; `INVALID_STATE` (đã nghỉ); `RULE_VIOLATION` NV-01, NV-02 (thông báo liệt kê chứng từ đang chặn), NV-04 (chi nhánh Ngừng hoạt động) |
 | `POST /employees/{employee_id}/account` | `AccountCreate` → `201 AccountIssued` | `NOT_FOUND`; `INVALID_STATE` NV-03 (đã nghỉ, đã có tài khoản); `DUPLICATE` NV-03 (tên đăng nhập đã dùng, kể cả của người đã nghỉ) |
 | `POST /employees/{employee_id}/account/lock`, `…/unlock` | → `Employee` | `NOT_FOUND`; `INVALID_STATE` (chưa cấp, hoặc đã ở trạng thái đích) |
+| `POST /employees/{employee_id}/account/reset-password` | → `200 AccountIssued` (mật khẩu tạm mới, chỉ trả một lần; `username`, `account_status` giữ nguyên, tài khoản Bị khóa vẫn khóa) | `NOT_FOUND`; `INVALID_STATE` NV-03 (đã nghỉ, chưa cấp tài khoản) |
 
 Quyết định của người dùng ở vòng 1 (đặc tả để trống): không tạo, không phân công vào chi nhánh Ngừng hoạt động;
 không phân công, không cấp tài khoản cho nhân viên Đã nghỉ; nhân viên chưa từng có tài khoản được chuyển Đã nghỉ;
