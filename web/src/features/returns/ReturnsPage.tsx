@@ -1,9 +1,10 @@
 // 3.4 Lập phiếu trả (NVBH, QL) và theo dõi trạng thái duyệt, hoàn tiền; QL duyệt hoặc từ chối, HQ duyệt thay
 // mọi chi nhánh kèm lý do (TH-03, K-02, K-03, quyết định 15).
 // TH-01, TH-02 do API kiểm tra; giá trị phiếu, trạng thái hoàn lấy từ API (dẫn xuất), giao diện không tự tính.
-import { useQuery } from "@tanstack/react-query";
-import { Button, Card, Checkbox, Form, Input, InputNumber, Select, Space, Table, Tag } from "antd";
-import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Alert, Button, Card, Checkbox, Descriptions, Form, Input, InputNumber, Select, Space, Table, Tag, message } from "antd";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { useAuth } from "../../auth";
 import { dateTime, money } from "../../format";
@@ -43,21 +44,102 @@ const itemColumns = [
 // Chỉ đơn Hoàn tất hoặc Đã trả một phần mới được lập phiếu trả (TH-01)
 const RETURNABLE: Schemas["OrderStatus"][] = ["COMPLETED", "PARTIALLY_RETURNED"];
 
-/** Chọn đơn gốc, rồi mỗi dòng là một sản phẩm của đơn đó với số lượng tốt và lỗi (TH-02). */
-function ReturnFields({ orders }: { orders: Schemas["Order"][] }) {
+/** Chọn đơn gốc (tra theo SĐT khách 2.3 hoặc chọn mã đơn), rồi mỗi dòng là một sản phẩm tốt/lỗi (TH-02). */
+function ReturnFields({
+  orders,
+  preselectedOrderId,
+}: {
+  orders: Schemas["Order"][];
+  preselectedOrderId?: string;
+}) {
+  const form = Form.useFormInstance();
   const orderId = Form.useWatch("order_id");
-  const order = orders.find((candidate) => candidate.order_id === orderId);
+  const items: { product_id: string; good_qty: number; defective_qty: number }[] =
+    Form.useWatch("items") ?? [];
+  const [matchedOrders, setMatchedOrders] = useState<Schemas["Order"][] | null>(null);
+
+  const lookup = useMutation({
+    mutationFn: async (phone: string) => {
+      const customers = await unwrap(client.GET("/customers", { params: { query: { phone } } }));
+      if (customers.length === 0) throw new Error("Không tìm thấy khách hàng");
+      const customer = customers[0];
+      const history = await unwrap(
+        client.GET("/customers/{customer_id}/history", {
+          params: { path: { customer_id: customer.customer_id }, query: { phone } },
+        }),
+      );
+      return { customer, orders: (history.orders ?? []).filter((o) => RETURNABLE.includes(o.status)) };
+    },
+    onSuccess: ({ customer, orders: customerOrders }) => {
+      if (customerOrders.length === 0) {
+        message.warning(`Khách ${customer.full_name} không có đơn nào đủ điều kiện trả`);
+        return;
+      }
+      setMatchedOrders(customerOrders);
+      if (customerOrders.length === 1) {
+        form.setFieldValue("order_id", customerOrders[0].order_id);
+      }
+      message.success(`Khách: ${customer.full_name} (${customerOrders.length} đơn có thể trả)`);
+    },
+    onError: (error) => message.error(error.message, 6),
+  });
+
+  const availableOrders = matchedOrders ?? orders;
+  const order = availableOrders.find((candidate) => candidate.order_id === orderId);
+
+  // Tính tổng tiền hoàn ước tính (preview, không lưu DB; API tính chính thức sau khi tạo phiếu)
+  const previewTotal = items.reduce((sum, row) => {
+    const orderItem = order?.items.find((it) => it.product_id === row.product_id);
+    const qty = (row.good_qty ?? 0) + (row.defective_qty ?? 0);
+    return sum + qty * (orderItem?.unit_price ?? 0);
+  }, 0);
+
+  useEffect(() => {
+    if (preselectedOrderId) {
+      form.setFieldValue("order_id", preselectedOrderId);
+    }
+  }, [preselectedOrderId, form]);
+
   return (
     <>
+      {/* Bước 01: tra khách theo SĐT để lấy lịch sử đơn */}
+      <Form.Item label="Tra đơn theo số điện thoại khách">
+        <Input.Search
+          enterButton="Tra"
+          loading={lookup.isPending}
+          placeholder="Nhập số điện thoại khách hàng"
+          onSearch={(phone) => phone && lookup.mutate(phone.trim())}
+        />
+      </Form.Item>
       <Form.Item label="Đơn gốc" name="order_id" rules={[{ required: true }]}>
         <Select
           showSearch
-          options={orders.map((candidate) => ({
+          optionFilterProp="label"
+          placeholder="Chọn đơn hàng"
+          options={availableOrders.map((candidate) => ({
             value: candidate.order_id,
             label: `${candidate.order_id} · ${candidate.customer_id} · ${dateTime(candidate.completed_at)}`,
           }))}
         />
       </Form.Item>
+
+      {/* Bước 03: hiển thị tóm tắt đơn gốc sau khi chọn */}
+      {order && (
+        <Descriptions
+          size="small"
+          bordered
+          column={2}
+          style={{ marginBottom: 16 }}
+        >
+          <Descriptions.Item label="Mã đơn">{order.order_id}</Descriptions.Item>
+          <Descriptions.Item label="Chi nhánh">{order.branch_id}</Descriptions.Item>
+          <Descriptions.Item label="Khách hàng">{order.customer_id}</Descriptions.Item>
+          <Descriptions.Item label="Trạng thái">{order.status === "COMPLETED" ? "Hoàn tất" : "Đã trả một phần"}</Descriptions.Item>
+          <Descriptions.Item label="Tổng tiền">{money(order.total)}</Descriptions.Item>
+          <Descriptions.Item label="Hoàn tất lúc">{dateTime(order.completed_at)}</Descriptions.Item>
+        </Descriptions>
+      )}
+
       <Form.Item label="Lý do trả" name="reason" rules={[{ required: true, whitespace: true }]}>
         <Input.TextArea />
       </Form.Item>
@@ -69,34 +151,63 @@ function ReturnFields({ orders }: { orders: Schemas["Order"][] }) {
       >
         <Checkbox>Khách xuất trình hóa đơn</Checkbox>
       </Form.Item>
+
+      {/* Bước 04-05: chọn sản phẩm, số lượng tốt/lỗi */}
       <Form.List name="items">
         {(fields, { add, remove }) => (
           <>
-            {fields.map((field) => (
-              <Space key={field.key} align="baseline" wrap>
-                <Form.Item name={[field.name, "product_id"]} rules={[{ required: true }]}>
-                  <Select
-                    placeholder="Sản phẩm"
-                    style={{ width: 200 }}
-                    options={(order?.items ?? []).map((item) => ({
-                      value: item.product_id,
-                      label: `${item.product_id} (mua ${item.quantity})`,
-                    }))}
-                  />
-                </Form.Item>
-                <Form.Item label="Tốt" name={[field.name, "good_qty"]} rules={[{ required: true }]}>
-                  <InputNumber min={0} precision={0} />
-                </Form.Item>
-                <Form.Item label="Lỗi" name={[field.name, "defective_qty"]} rules={[{ required: true }]}>
-                  <InputNumber min={0} precision={0} />
-                </Form.Item>
-                <Button onClick={() => remove(field.name)}>Bỏ</Button>
-              </Space>
-            ))}
+            {fields.map((field) => {
+              const selectedProductId = form.getFieldValue(["items", field.name, "product_id"]);
+              const orderItem = order?.items.find((it) => it.product_id === selectedProductId);
+              return (
+                <Space key={field.key} align="start" wrap style={{ marginBottom: 4 }}>
+                  <div>
+                    <Form.Item name={[field.name, "product_id"]} rules={[{ required: true }]} style={{ marginBottom: 4 }}>
+                      <Select
+                        placeholder="Sản phẩm"
+                        style={{ width: 200 }}
+                        options={(order?.items ?? []).map((item) => ({
+                          value: item.product_id,
+                          label: item.product_id,
+                        }))}
+                      />
+                    </Form.Item>
+                    {/* Hiển thị thông tin đã mua và đơn giá chốt */}
+                    {orderItem && (
+                      <div style={{ fontSize: 12, color: "#595959", marginBottom: 4 }}>
+                        Đã mua: {orderItem.quantity} · Đơn giá chốt: {money(orderItem.unit_price)}
+                      </div>
+                    )}
+                  </div>
+                  <Form.Item label="Tốt" name={[field.name, "good_qty"]} rules={[{ required: true }]}>
+                    <InputNumber min={0} precision={0} />
+                  </Form.Item>
+                  <Form.Item label="Lỗi" name={[field.name, "defective_qty"]} rules={[{ required: true }]}>
+                    <InputNumber min={0} precision={0} />
+                  </Form.Item>
+                  <Button onClick={() => remove(field.name)}>Bỏ</Button>
+                </Space>
+              );
+            })}
             <Button onClick={() => add({ good_qty: 0, defective_qty: 0 })}>Thêm dòng</Button>
           </>
         )}
       </Form.List>
+
+      {/* Preview tổng hoàn tiền (ước tính) */}
+      {previewTotal > 0 && (
+        <Form.Item label="Tổng giá trị hoàn (ước tính)">
+          <strong>{money(previewTotal)}</strong>
+        </Form.Item>
+      )}
+
+      {/* Ghi chú nghiệp vụ: khách vẫn giữ hàng đến khi phiếu được duyệt (Bước 05 → 07) */}
+      <Alert
+        type="info"
+        showIcon
+        message="Khách vẫn giữ hàng cho đến khi phiếu được Quản lý duyệt"
+        style={{ marginTop: 8 }}
+      />
     </>
   );
 }
@@ -130,6 +241,15 @@ export function ReturnsPage() {
     DECISION_KEYS,
   );
   const [creating, setCreating] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const preselectedOrderId = searchParams.get("order_id") ?? undefined;
+
+  useEffect(() => {
+    if (preselectedOrderId) {
+      setCreating(true);
+    }
+  }, [preselectedOrderId]);
+
   const orders = useQuery({
     queryKey: ["orders", undefined],
     queryFn: () => unwrap(client.GET("/orders", { params: { query: {} } })),
@@ -250,11 +370,15 @@ export function ReturnsPage() {
         <FormModal<Schemas["ReturnCreate"]>
           title="Lập phiếu trả"
           initialValues={{ items: [{ good_qty: 0, defective_qty: 0 } as Schemas["ReturnItemInput"]] }}
-          onClose={() => setCreating(false)}
+          onClose={() => {
+            setCreating(false);
+            setSearchParams({});
+          }}
           onSubmit={create.mutateAsync}
         >
           <ReturnFields
             orders={(orders.data ?? []).filter((order) => RETURNABLE.includes(order.status))}
+            preselectedOrderId={preselectedOrderId}
           />
         </FormModal>
       )}

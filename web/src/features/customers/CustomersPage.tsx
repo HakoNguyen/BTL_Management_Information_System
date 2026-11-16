@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { dateTime } from "../../format";
 import { ORDER_STATUS_LABEL } from "../../labels";
@@ -15,6 +16,7 @@ type Search = { by: "phone" | "customer_id"; value: string };
 const customerPath = (id: string) => ({ params: { path: { customer_id: id } } });
 
 export function CustomersPage() {
+  const navigate = useNavigate();
   const [by, setBy] = useState<Search["by"]>("phone");
   const [search, setSearch] = useState<Search | null>(null);
   const customers = useQuery({
@@ -179,6 +181,21 @@ export function CustomersPage() {
                     render: (status: Schemas["OrderStatus"]) => <Tag>{ORDER_STATUS_LABEL[status]}</Tag>,
                   },
                   moneyColumn("Tổng tiền", "total"),
+                  {
+                    title: "Thao tác",
+                    render: (_, order) =>
+                      (order.status === "COMPLETED" || order.status === "PARTIALLY_RETURNED") && (
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            setHistory(null);
+                            navigate(`/returns?order_id=${order.order_id}`);
+                          }}
+                        >
+                          Lập phiếu trả
+                        </Button>
+                      ),
+                  },
                 ]}
               />
               <Typography.Title level={5}>Phiếu trả</Typography.Title>
