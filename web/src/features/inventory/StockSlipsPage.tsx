@@ -8,7 +8,7 @@ import { client, unwrap, type Schemas } from "../../api/client";
 import { useAuth } from "../../auth";
 import { dateTime } from "../../format";
 import { SLIP_STATUS_LABEL, SLIP_TYPE_LABEL, optionsOf } from "../../labels";
-import { FormModal, useWrite } from "../../ui";
+import { FormModal, STATUS_COLOR, useWrite } from "../../ui";
 import { ItemsField } from "../orders/ItemsField";
 import { stockProblems } from "../orders/stockProblems";
 
@@ -31,11 +31,6 @@ const APPROVABLE = SLIP_TYPES.map((option) => option.value as Slip["type"]);
 const slipPath = (id: string) => ({ params: { path: { slip_id: id } } });
 // Phiếu xuất giữ hàng nên làm đổi tồn khả dụng; phiếu nhập đổi tồn ngay
 const KEYS = ["stock-slips", "stock", "reports"];
-const STATUS_COLOR: Record<Slip["status"], string> = {
-  PENDING: "gold",
-  POSTED: "green",
-  CANCELLED: "default",
-};
 
 export function StockSlipsPage() {
   const isManager = useAuth().user?.role === "MANAGER";

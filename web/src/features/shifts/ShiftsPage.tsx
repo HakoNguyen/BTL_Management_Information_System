@@ -28,7 +28,7 @@ import {
   TXN_TYPE_LABEL,
   optionsOf,
 } from "../../labels";
-import { FormModal, moneyColumn, useWrite } from "../../ui";
+import { FormModal, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
 import { ReconcileModal } from "../payments/PendingTransactions";
 import { canApproveCashRefund, canReconcile, shiftActions } from "./shiftActions";
 
@@ -56,7 +56,7 @@ export const txnColumns = [
   {
     title: "Trạng thái",
     dataIndex: "status",
-    render: (v: Schemas["TxnStatus"]) => <Tag>{TXN_STATUS_LABEL[v]}</Tag>,
+    render: (v: Schemas["TxnStatus"]) => <Tag color={STATUS_COLOR[v]}>{TXN_STATUS_LABEL[v]}</Tag>,
   },
 ];
 
@@ -154,7 +154,9 @@ function ShiftResult({ shift }: { shift: ShiftDetail }) {
     <>
       <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
         <Descriptions.Item label="Mã ca">{shift.shift_id}</Descriptions.Item>
-        <Descriptions.Item label="Trạng thái">{SHIFT_STATUS_LABEL[shift.status]}</Descriptions.Item>
+        <Descriptions.Item label="Trạng thái">
+          <Tag color={STATUS_COLOR[shift.status]}>{SHIFT_STATUS_LABEL[shift.status]}</Tag>
+        </Descriptions.Item>
         <Descriptions.Item label="Mở lúc">{dateTime(shift.opened_at)}</Descriptions.Item>
         <Descriptions.Item label="Đóng lúc">{dateTime(shift.closed_at)}</Descriptions.Item>
         <Descriptions.Item label="Tiền đầu ca">{money(shift.opening_cash)}</Descriptions.Item>
@@ -353,7 +355,9 @@ export function ShiftsPage() {
             {
               title: "Trạng thái",
               dataIndex: "status",
-              render: (v: Shift["status"]) => <Tag>{SHIFT_STATUS_LABEL[v]}</Tag>,
+              render: (v: Shift["status"]) => (
+                <Tag color={STATUS_COLOR[v]}>{SHIFT_STATUS_LABEL[v]}</Tag>
+              ),
             },
             moneyColumn("Tiền mặt kỳ vọng", "expected_cash"),
             {

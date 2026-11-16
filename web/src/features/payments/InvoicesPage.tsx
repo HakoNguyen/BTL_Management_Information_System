@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { dateTime, money } from "../../format";
 import { ORDER_STATUS_LABEL, TXN_METHOD_LABEL } from "../../labels";
-import { moneyColumn, useWrite } from "../../ui";
+import { STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
 
 type Order = Schemas["Order"];
 type Invoice = Schemas["Invoice"];
@@ -95,7 +95,7 @@ export function InvoicesPage() {
           {
             title: "Trạng thái",
             dataIndex: "status",
-            render: (v: Order["status"]) => <Tag>{ORDER_STATUS_LABEL[v]}</Tag>,
+            render: (v: Order["status"]) => <Tag color={STATUS_COLOR[v]}>{ORDER_STATUS_LABEL[v]}</Tag>,
           },
           moneyColumn("Tổng tiền", "total"),
           {

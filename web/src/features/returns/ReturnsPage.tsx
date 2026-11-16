@@ -8,7 +8,7 @@ import { client, unwrap, type Schemas } from "../../api/client";
 import { useAuth } from "../../auth";
 import { dateTime, money } from "../../format";
 import { REFUND_STATUS_LABEL, RETURN_STATUS_LABEL, optionsOf } from "../../labels";
-import { FormModal, moneyColumn, useWrite } from "../../ui";
+import { FormModal, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
 import { decisionNoteRequired } from "./decisionNote";
 
 type ReturnSlip = Schemas["ReturnSlip"];
@@ -22,13 +22,16 @@ export const returnColumns = [
   {
     title: "Trạng thái",
     dataIndex: "status",
-    render: (status: ReturnSlip["status"]) => <Tag>{RETURN_STATUS_LABEL[status]}</Tag>,
+    render: (status: ReturnSlip["status"]) => (
+      <Tag color={STATUS_COLOR[status]}>{RETURN_STATUS_LABEL[status]}</Tag>
+    ),
   },
   moneyColumn("Giá trị", "value"),
   {
     title: "Hoàn tiền",
     dataIndex: "refund_status",
-    render: (status: ReturnSlip["refund_status"]) => (status ? REFUND_STATUS_LABEL[status] : ""),
+    render: (status: ReturnSlip["refund_status"]) =>
+      status && <Tag color={STATUS_COLOR[status]}>{REFUND_STATUS_LABEL[status]}</Tag>,
   },
 ];
 

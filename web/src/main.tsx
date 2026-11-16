@@ -14,7 +14,12 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ConfigProvider locale={viVN}>
+      <ConfigProvider
+        locale={viVN}
+        // Mọi bảng: ô không xuống dòng (cột nút vẫn tự xếp hàng), đệm dọc gọn hơn mặc định
+        table={{ style: { whiteSpace: "nowrap" } }}
+        theme={{ components: { Table: { cellPaddingBlock: 10 } } }}
+      >
         <BrowserRouter>
           <AuthProvider>
             <App />

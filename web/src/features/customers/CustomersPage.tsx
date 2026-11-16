@@ -6,7 +6,7 @@ import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { dateTime } from "../../format";
 import { ORDER_STATUS_LABEL } from "../../labels";
-import { FormModal, moneyColumn, useWrite } from "../../ui";
+import { FormModal, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
 import { returnColumns } from "../returns/ReturnsPage";
 
 type Customer = Schemas["Customer"];
@@ -176,7 +176,7 @@ export function CustomersPage() {
                   {
                     title: "Trạng thái",
                     dataIndex: "status",
-                    render: (status: Schemas["OrderStatus"]) => <Tag>{ORDER_STATUS_LABEL[status]}</Tag>,
+                    render: (status: Schemas["OrderStatus"]) => <Tag color={STATUS_COLOR[status]}>{ORDER_STATUS_LABEL[status]}</Tag>,
                   },
                   moneyColumn("Tổng tiền", "total"),
                 ]}

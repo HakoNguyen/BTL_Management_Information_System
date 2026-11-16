@@ -6,7 +6,7 @@ import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { dateTime, money } from "../../format";
 import { PRODUCT_STATUS_LABEL } from "../../labels";
-import { FormModal, moneyColumn, useWrite } from "../../ui";
+import { FormModal, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
 
 type Product = Schemas["Product"];
 type Dialog = "create" | "edit" | "group" | "price" | "history";
@@ -96,6 +96,7 @@ export function ProductsPage() {
         rowKey="product_id"
         loading={products.isPending}
         dataSource={products.data}
+        pagination={{ pageSize: 10, simple: true, hideOnSinglePage: true }}
         scroll={{ x: true }}
         columns={[
           { title: "Mã", dataIndex: "product_id" },
@@ -111,7 +112,7 @@ export function ProductsPage() {
             title: "Trạng thái",
             dataIndex: "status",
             render: (status: Product["status"]) => (
-              <Tag color={status === "ON_SALE" ? "green" : "default"}>
+              <Tag color={STATUS_COLOR[status]}>
                 {PRODUCT_STATUS_LABEL[status]}
               </Tag>
             ),

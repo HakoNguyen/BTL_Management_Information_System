@@ -4,7 +4,7 @@ import { Button, Card, Form, Input, Popconfirm, Space, Table, Tag } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { BRANCH_STATUS_LABEL } from "../../labels";
-import { FormModal, useWrite } from "../../ui";
+import { FormModal, STATUS_COLOR, useWrite } from "../../ui";
 
 type Branch = Schemas["Branch"];
 
@@ -74,7 +74,7 @@ export function BranchesPage() {
             title: "Trạng thái",
             dataIndex: "status",
             render: (status: Branch["status"]) => (
-              <Tag color={status === "ACTIVE" ? "green" : "default"}>
+              <Tag color={STATUS_COLOR[status]}>
                 {BRANCH_STATUS_LABEL[status]}
               </Tag>
             ),

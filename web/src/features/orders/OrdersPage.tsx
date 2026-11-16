@@ -7,7 +7,7 @@ import { client, unwrap, type Schemas } from "../../api/client";
 import { useAuth } from "../../auth";
 import { dateTime, money } from "../../format";
 import { ORDER_STATUS_LABEL, optionsOf } from "../../labels";
-import { FormModal, moneyColumn, useWrite } from "../../ui";
+import { FormModal, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
 import { CustomerField, ItemsField } from "./ItemsField";
 import { stockProblems } from "./stockProblems";
 
@@ -142,7 +142,7 @@ export function OrdersPage() {
           {
             title: "Trạng thái",
             dataIndex: "status",
-            render: (value: Order["status"]) => <Tag>{ORDER_STATUS_LABEL[value]}</Tag>,
+            render: (value: Order["status"]) => <Tag color={STATUS_COLOR[value]}>{ORDER_STATUS_LABEL[value]}</Tag>,
           },
           {
             ...moneyColumn("Tổng tiền", "total"),

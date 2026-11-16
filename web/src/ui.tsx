@@ -2,7 +2,57 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Form, Modal, message } from "antd";
 import { useState, type ReactNode } from "react";
+import type { Schemas } from "./api/client";
 import { money } from "./format";
+
+type StatusCode =
+  | Schemas["BranchStatus"]
+  | Schemas["EmployeeStatus"]
+  | Schemas["AccountStatus"]
+  | Schemas["ProductStatus"]
+  | Schemas["LevelStatus"]
+  | Schemas["TxnStatus"]
+  | Schemas["ShiftStatus"]
+  | Schemas["SlipStatus"]
+  | Schemas["OrderStatus"]
+  | Schemas["ReturnStatus"]
+  | Schemas["RefundStatus"];
+
+const POSITIVE = "blue";
+const NEGATIVE = "volcano";
+const WAITING = "gold";
+const NEUTRAL = "default";
+
+/** Màu tag trạng thái: tích cực xanh, tiêu cực đỏ cam, chờ người khác xử lý vàng, còn lại xám. */
+export const STATUS_COLOR: Record<StatusCode, string> = {
+  ACTIVE: POSITIVE,
+  INACTIVE: NEGATIVE,
+  WORKING: POSITIVE,
+  LEFT: NEGATIVE,
+  LOCKED: NEGATIVE,
+  ON_SALE: POSITIVE,
+  DISCONTINUED: NEGATIVE,
+  OK: POSITIVE,
+  BELOW_MIN: NEGATIVE,
+  NOT_SET: NEUTRAL,
+  SUCCESS: POSITIVE,
+  FAILED: NEGATIVE,
+  PENDING: WAITING,
+  OPEN: NEUTRAL,
+  AWAITING_CONFIRMATION: WAITING,
+  SETTLED: POSITIVE,
+  POSTED: POSITIVE,
+  CANCELLED: NEGATIVE,
+  DRAFT: NEUTRAL,
+  AWAITING_PAYMENT: WAITING,
+  COMPLETED: POSITIVE,
+  PARTIALLY_RETURNED: WAITING,
+  FULLY_RETURNED: NEGATIVE,
+  APPROVED: POSITIVE,
+  REJECTED: NEGATIVE,
+  NOT_REFUNDED: NEGATIVE,
+  REFUNDED: POSITIVE,
+};
 
 /** Ghi dữ liệu: báo kết quả (lỗi hiện đúng thông báo của API), rồi tải lại các khóa trong `keys`. */
 export function useWrite<V, R>(fn: (values: V) => Promise<R>, keys: string[]) {
