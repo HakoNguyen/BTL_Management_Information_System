@@ -63,7 +63,7 @@ Cột viết theo dạng `tên trong code` = tên trong đặc tả 5.7. **PK** 
 | Bảng | Thực thể | Cột |
 | --- | --- | --- |
 | `stock` | TỒN KHO | **`branch_id` + `product_id`**; `quantity` = số lượng tồn; `min_level` = mức tồn tối thiểu (NULL = Chưa thiết lập) |
-| `stock_slips` | PHIẾU KHO | **`slip_id`** = mã phiếu kho; `branch_id` = mã CN; `type` = loại phiếu; `status` = trạng thái; `created_at` = thời điểm lập; `created_by` = mã NV lập (NULL nếu tự động); `reason` = lý do; `counterparty` = bên giao / bên nhận; `delivery_no` = số phiếu giao; `order_id` = mã đơn (xuất bán); `return_id` = mã phiếu trả (nhập hàng trả); `adjusts_slip_id` = mã phiếu kho bị điều chỉnh; `approved_by` = mã NV duyệt (người quyết định, cả khi từ chối); `decision_reason` = lý do từ chối (K-03, thêm ở `003_stock_slip_decision_reason.sql`, không có trong đặc tả 5.7); `finalized_at` = thời điểm ghi nhận hoặc hủy |
+| `stock_slips` | PHIẾU KHO | **`slip_id`** = mã phiếu kho; `branch_id` = mã CN; `type` = loại phiếu; `status` = trạng thái; `created_at` = thời điểm lập; `created_by` = mã NV lập (NULL nếu tự động); `reason` = lý do; `counterparty` = bên giao / bên nhận; `delivery_no` = số phiếu giao; `order_id` = mã đơn (xuất bán); `return_id` = mã phiếu trả (nhập hàng trả); `adjusts_slip_id` = mã phiếu kho bị điều chỉnh; `transfer_slip_id` = mã phiếu xuất điều chuyển (chỉ Nhập điều chuyển, TK-07, thêm ở `005_stock_transfer.sql`); `approved_by` = mã NV duyệt (người quyết định, cả khi từ chối); `decision_reason` = lý do từ chối (K-03, thêm ở `003_stock_slip_decision_reason.sql`, không có trong đặc tả 5.7); `finalized_at` = thời điểm ghi nhận hoặc hủy |
 | `stock_slip_items` | CHI TIẾT PHIẾU KHO | **`slip_id` + `product_id`**; `quantity` = số lượng |
 | `replenishment_requests` | YÊU CẦU BỔ SUNG | **`request_id`** = mã yêu cầu; `branch_id` = mã CN; `created_by` = mã NV lập; `created_at` = thời điểm lập; `type` = loại yêu cầu; `recipient` = nơi nhận |
 | `replenishment_request_items` | CHI TIẾT YÊU CẦU | **`request_id` + `product_id`**; `quantity` = số lượng đề nghị |
@@ -86,7 +86,7 @@ Code dùng enum, không viết chuỗi trực tiếp.
 | `transactions.method` | `TxnMethod` | `CASH` = Tiền mặt; `TRANSFER` = Chuyển khoản; `CARD` = Thẻ |
 | `transactions.status` | `TxnStatus` | `PENDING` = Chờ kết quả; `SUCCESS` = Thành công; `FAILED` = Thất bại |
 | `shifts.status` | `ShiftStatus` | `OPEN` = Đang mở; `AWAITING_CONFIRMATION` = Chờ xác nhận; `SETTLED` = Đã chốt |
-| `stock_slips.type` | `SlipType` | `IN_WAREHOUSE` = Nhập từ kho tổng; `IN_SUPPLIER` = Nhập từ NCC; `IN_RETURN` = Nhập hàng trả; `ADJUST_UP` = Điều chỉnh tăng; `OUT_SALE` = Xuất bán; `OUT_DISPOSAL` = Xuất hủy; `OUT_TO_WAREHOUSE` = Xuất trả kho tổng; `ADJUST_DOWN` = Điều chỉnh giảm |
+| `stock_slips.type` | `SlipType` | `IN_WAREHOUSE` = Nhập từ kho tổng; `IN_SUPPLIER` = Nhập từ NCC; `IN_RETURN` = Nhập hàng trả; `ADJUST_UP` = Điều chỉnh tăng; `OUT_SALE` = Xuất bán; `OUT_DISPOSAL` = Xuất hủy; `OUT_TO_WAREHOUSE` = Xuất trả kho tổng; `ADJUST_DOWN` = Điều chỉnh giảm; `OUT_TRANSFER` = Xuất điều chuyển; `IN_TRANSFER` = Nhập điều chuyển |
 | `stock_slips.status` | `SlipStatus` | `PENDING` = Chờ xử lý; `POSTED` = Đã ghi nhận; `CANCELLED` = Đã hủy |
 | `replenishment_requests.type` | `ReplenishType` | `TRANSFER` = Điều chuyển (kho tổng); `SUPPLIER` = Nhập NCC |
 
@@ -122,7 +122,9 @@ không để lỗi CSDL lọt ra thành lỗi 500.
 | TK-02: nhập kho tổng/NCC có bên giao và số phiếu giao, không ghi hai lần | `stock_slips_delivery_note`, `stock_slips_delivery_note_unique` |
 | TK-03: mỗi đơn tối đa một phiếu xuất bán chưa hủy | `stock_slips_one_live_sale_per_order` |
 | TK-02, TH-05: mỗi phiếu trả tối đa một phiếu nhập hàng trả | `stock_slips_one_per_return` |
-| TK-03, TK-04: phiếu cần duyệt bắt buộc lý do | `stock_slips_reason_required` |
+| TK-03, TK-04, TK-07: phiếu cần duyệt bắt buộc lý do | `stock_slips_reason_required` |
+| TK-07: xuất điều chuyển có bên nhận | `stock_slips_transfer_counterparty` |
+| TK-07: nhập điều chuyển có mã phiếu xuất điều chuyển; mỗi phiếu xuất nhận một lần | `stock_slips_transfer_link`, `stock_slips_one_per_transfer` |
 | K-02: người duyệt phiếu kho khác người lập | `stock_slips_approver_differs` |
 
 ## 5. Ràng buộc ép ở service
@@ -137,6 +139,8 @@ CSDL không tự ép được các điều dưới đây; service của nhóm s�
   theo thứ tự `product_id` tăng dần trước khi tính, để hai giao dịch tranh hàng không cùng qua được (KT-06).
 - Tồn chỉ đổi khi một phiếu kho chuyển `POSTED` (TK-01): không có câu `UPDATE stock SET quantity` nào nằm ngoài
   `api/services/inventory.py`.
+- Bên nhận (`counterparty`) của xuất điều chuyển là mã một chi nhánh Hoạt động khác chi nhánh lập; phiếu nhập điều
+  chuyển chép đúng các dòng của phiếu xuất `POSTED` gửi tới chi nhánh mình (TK-07).
 - Không sửa, xóa chứng từ đã có hiệu lực (K-04) và không xóa danh mục đã phát sinh nghiệp vụ (K-05).
 
 ## 6. Dữ liệu dẫn xuất
@@ -150,6 +154,7 @@ Theo đặc tả 5.5, các số dưới đây **không lưu thành cột**; luô
 | Giá trị phiếu trả | Σ `(good_qty + defective_qty) × unit_price` của dòng đơn gốc (TH-04) |
 | Tình trạng hoàn tiền của phiếu | Đã hoàn nếu có giao dịch Hoàn `SUCCESS`; Đang chờ kết quả nếu có giao dịch `PENDING`; còn lại Chưa hoàn |
 | Tồn khả dụng | `stock.quantity` − Σ số lượng trên các phiếu xuất `PENDING` của cùng chi nhánh và sản phẩm (TK-01) |
+| Hàng đang vận chuyển | `OUT_TRANSFER` `POSTED` không có `IN_TRANSFER` nào trỏ tới qua `transfer_slip_id` (TK-07) |
 | Tiền mặt kỳ vọng, chênh lệch ca | Theo CA-02 |
 | Chỉ tiêu doanh thu | Theo DT-01 đến DT-05 |
 

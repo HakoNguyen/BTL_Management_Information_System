@@ -57,7 +57,7 @@ services:
     environment:
       BANK_KEY: ${BANK_KEY:?Thieu BANK_KEY trong .env}
       BANK_CALLBACK_URL: http://api:8000/bank/callback
-      BANK_MOCK_MODE: ${BANK_MOCK_MODE:-SUCCESS}
+      BANK_MOCK_MODE: ${BANK_MOCK_MODE:-SILENT}
     ports:
       - "${BANK_PORT:-8001}:8001"
     restart: unless-stopped

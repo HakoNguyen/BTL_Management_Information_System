@@ -92,6 +92,8 @@ class SlipType(StrEnum):
     OUT_DISPOSAL = "OUT_DISPOSAL"  # Xuất hủy
     OUT_TO_WAREHOUSE = "OUT_TO_WAREHOUSE"  # Xuất trả kho tổng
     ADJUST_DOWN = "ADJUST_DOWN"  # Điều chỉnh giảm
+    OUT_TRANSFER = "OUT_TRANSFER"  # Xuất điều chuyển (4.6)
+    IN_TRANSFER = "IN_TRANSFER"  # Nhập điều chuyển (4.6)
 
 
 class SlipStatus(StrEnum):
@@ -118,6 +120,15 @@ class RankBy(StrEnum):
 
     QUANTITY = "QUANTITY"  # Lượng thuần
     VALUE = "VALUE"  # Giá trị thuần
+
+
+class SeriesPeriod(StrEnum):
+    """Độ chi tiết của biểu đồ doanh thu theo thời gian (tính năng thêm, docs/api.md nhóm 5)."""
+
+    DAY = "DAY"
+    MONTH = "MONTH"
+    QUARTER = "QUARTER"
+    YEAR = "YEAR"
 
 
 class ErrorCode(StrEnum):

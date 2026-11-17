@@ -1,13 +1,14 @@
 // 3.3 Xem và in lại hóa đơn của đơn đã thanh toán; mỗi lần in API tăng số lần in (TT-04).
 // Trang in dùng hộp thoại in của trình duyệt; khi in chỉ hiện phần hóa đơn.
 import { useQuery } from "@tanstack/react-query";
-import { Button, Card, Descriptions, Modal, Table, Tag } from "antd";
+import { Button, Card, Descriptions, Modal, Select, Space, Table, Tag } from "antd";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { client, unwrap, type Schemas } from "../../api/client";
+import { inDateRange, type DateRange } from "../../dateRange";
 import { dateTime, money } from "../../format";
-import { ORDER_STATUS_LABEL, TXN_METHOD_LABEL } from "../../labels";
-import { STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
+import { ORDER_STATUS_LABEL, SHIFT_STATUS_LABEL, TXN_METHOD_LABEL } from "../../labels";
+import { DateRangeFilter, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
 
 type Order = Schemas["Order"];
 type Invoice = Schemas["Invoice"];
@@ -51,9 +52,17 @@ function InvoiceView({ invoice }: { invoice: Invoice }) {
 }
 
 export function InvoicesPage() {
+  const [range, setRange] = useState<DateRange>(null);
+  const [shiftId, setShiftId] = useState<string>();
+  // Thu ngân chỉ thấy ca của mình (GET /shifts)
+  const shifts = useQuery({
+    queryKey: ["shifts", "list", undefined],
+    queryFn: () => unwrap(client.GET("/shifts", { params: { query: {} } })),
+  });
+  // shift_id: đơn có giao dịch thu Thành công trong ca đó (docs/api.md nhóm 3)
   const orders = useQuery({
-    queryKey: ["orders", undefined],
-    queryFn: () => unwrap(client.GET("/orders", { params: { query: {} } })),
+    queryKey: ["orders", "paid", shiftId],
+    queryFn: () => unwrap(client.GET("/orders", { params: { query: { shift_id: shiftId } } })),
   });
   const [orderId, setOrderId] = useState<string | null>(null);
   const invoice = useQuery({
@@ -82,11 +91,31 @@ export function InvoicesPage() {
   };
 
   return (
-    <Card title="Hóa đơn">
+    <Card
+      title="Hóa đơn"
+      extra={
+        <Space wrap>
+          <DateRangeFilter onChange={setRange} />
+          <Select
+            allowClear
+            placeholder="Mọi ca"
+            style={{ minWidth: 260 }}
+            value={shiftId}
+            onChange={setShiftId}
+            options={(shifts.data ?? []).map((shift) => ({
+              value: shift.shift_id,
+              label: `${shift.shift_id} · mở ${dateTime(shift.opened_at)} · ${SHIFT_STATUS_LABEL[shift.status]}`,
+            }))}
+          />
+        </Space>
+      }
+    >
       <Table<Order>
         rowKey="order_id"
         loading={orders.isPending}
-        dataSource={(orders.data ?? []).filter((order) => PAID.includes(order.status))}
+        dataSource={(orders.data ?? []).filter(
+          (order) => PAID.includes(order.status) && inDateRange(order.completed_at, range),
+        )}
         scroll={{ x: true }}
         columns={[
           { title: "Mã đơn", dataIndex: "order_id" },

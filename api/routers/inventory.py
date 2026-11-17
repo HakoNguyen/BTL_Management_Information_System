@@ -59,6 +59,16 @@ async def list_slips(
     return await inventory.list_slips(conn, user, status)
 
 
+@router.get("/stock-slips/incoming-transfers")
+async def list_incoming_transfers(user: SlipViewer, conn: Conn) -> list[StockSlip]:
+    return await inventory.list_incoming_transfers(conn, user)
+
+
+@router.post("/stock-slips/{slip_id}/receive", status_code=201)
+async def receive_transfer(slip_id: str, user: WarehouseUser, conn: Conn) -> StockSlip:
+    return await inventory.receive_transfer(conn, slip_id, user)
+
+
 @router.get("/stock-slips/{slip_id}")
 async def get_slip(slip_id: str, user: SlipViewer, conn: Conn) -> StockSlip:
     return await inventory.get_slip(conn, slip_id, user)

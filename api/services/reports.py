@@ -23,6 +23,7 @@ from common.constants import (
     RankBy,
     ReturnStatus,
     Role,
+    SeriesPeriod,
     SlipStatus,
     SlipType,
     TxnStatus,
@@ -38,7 +39,9 @@ from common.models import (
     MoneyByMethod,
     ProductSalesLine,
     ProductSalesReport,
+    RevenuePoint,
     RevenueReport,
+    RevenueSeries,
     RevenueSummary,
     SlowMovingLine,
     StaffSalesLine,
@@ -298,6 +301,99 @@ async def revenue(
         branches=lines,
         total=_total(lines),
         previous=_total(await _revenue_lines(conn, branch_id, _previous(period))),
+    )
+
+
+# ---------------------------------------------------------------- Biểu đồ doanh thu theo thời gian
+
+_SERIES_MAX_DAYS = 92  # xem theo ngày quá 3 tháng thì biểu đồ không đọc được
+_MONTHS_PER = {SeriesPeriod.MONTH: 1, SeriesPeriod.QUARTER: 3, SeriesPeriod.YEAR: 12}
+# $4 nhóm sản phẩm (NULL = mọi nhóm), theo nhóm hiện tại trong D1 (DT-05)
+_IN_GROUP = "($4::text IS NULL OR {} IN (SELECT product_id FROM products WHERE group_id = $4))"
+
+
+def _bucket(day: date, period: SeriesPeriod) -> date:
+    """Ngày đầu của mốc chứa `day`: chính ngày đó, ngày 1 của tháng, quý hoặc năm."""
+    if period == SeriesPeriod.DAY:
+        return day
+    return date(day.year, day.month - (day.month - 1) % _MONTHS_PER[period], 1)
+
+
+def _buckets(from_date: date, to_date: date, period: SeriesPeriod) -> list[date]:
+    """Mọi mốc phủ kỳ [from_date, to_date], theo thứ tự thời gian."""
+    starts, current = [], _bucket(from_date, period)
+    while current <= to_date:
+        starts.append(current)
+        if period == SeriesPeriod.DAY:
+            current += timedelta(days=1)
+        else:
+            years, month = divmod(current.month - 1 + _MONTHS_PER[period], 12)
+            current = date(current.year + years, month + 1, 1)
+    return starts
+
+
+async def revenue_series(
+    conn: asyncpg.Connection,
+    user: CurrentUser,
+    from_date: date,
+    to_date: date,
+    branch_id: str | None,
+    group_id: str | None,
+    period: SeriesPeriod,
+) -> RevenueSeries:
+    """DT-01 đến DT-03 chia theo mốc thời gian; cùng mốc thời gian và phạm vi với 5.1."""
+    span = _period(from_date, to_date)
+    if period == SeriesPeriod.DAY and (to_date - from_date).days >= _SERIES_MAX_DAYS:
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR,
+            f"Xem theo ngày chỉ cho kỳ tối đa {_SERIES_MAX_DAYS} ngày; chọn theo tháng",
+        )
+    branch_id = _branch(user, branch_id)
+    if group_id is not None and not await conn.fetchval(
+        "SELECT 1 FROM product_groups WHERE group_id = $1", group_id
+    ):
+        raise AppError(ErrorCode.NOT_FOUND, f"Không tìm thấy nhóm sản phẩm {group_id}")
+
+    # Gom theo ngày giờ Việt Nam trong SQL, rồi ghép ngày vào mốc ở Python (một cách chia mốc).
+    # $5 là độ lệch dạng interval: chuỗi "UTC+07:00" bị PostgreSQL hiểu ngược dấu (kiểu POSIX).
+    args = (branch_id, *span, group_id, VN_TZ.utcoffset(None))
+    sold = await conn.fetch(
+        f"""
+        SELECT (o.completed_at AT TIME ZONE 'UTC' + $5)::date AS day,
+               count(DISTINCT o.order_id) AS n, sum(oi.quantity * oi.unit_price)::bigint AS gross
+        FROM orders o JOIN order_items oi USING (order_id)
+        WHERE {_SOLD_IN_PERIOD} AND {_IN_GROUP.format("oi.product_id")}
+        GROUP BY 1
+        """,
+        *args,
+    )
+    returned = await conn.fetch(
+        f"SELECT (r.decided_at AT TIME ZONE 'UTC' + $5)::date AS day,"
+        f" sum({_RETURN_VALUE})::bigint AS value"
+        f" {_RETURN_ITEMS} AND r.decided_at >= $2 AND r.decided_at < $3"
+        f" AND {_IN_GROUP.format('i.product_id')} GROUP BY 1",
+        *args,
+    )
+    points = {
+        start: {"order_count": 0, "gross_revenue": 0, "returns_value": 0}
+        for start in _buckets(from_date, to_date, period)
+    }
+    for row in sold:
+        point = points[_bucket(row["day"], period)]
+        point["order_count"] += row["n"]
+        point["gross_revenue"] += row["gross"]
+    for row in returned:
+        points[_bucket(row["day"], period)]["returns_value"] += row["value"]
+    return RevenueSeries(
+        **_header(branch_id, from_date, to_date),
+        period=period,
+        group_id=group_id,
+        points=[
+            RevenuePoint(
+                period_start=start, **p, net_revenue=p["gross_revenue"] - p["returns_value"]
+            )
+            for start, p in points.items()
+        ],
     )
 
 

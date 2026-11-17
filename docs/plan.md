@@ -4,7 +4,7 @@ File này cho biết dự án đang ở đâu và việc tiếp theo là gì. Đ
 
 ## 1. Tiến độ
 
-**Đã xong cả 10 vòng.** Việc còn lại xem mục 8. Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
+**Đã xong vòng 0 đến 10.** Vòng 11 (4.6, thêm 17/11/2026) đã code, chờ commit. Việc còn lại xem mục 8. Mỗi lần chỉ làm một vòng, theo đúng thứ tự: vòng sau
 dùng dữ liệu và hàm của vòng trước.
 
 | Vòng | Module | Nhánh | Chức năng | Quy tắc | Tình huống KT | Trạng thái |
@@ -20,6 +20,7 @@ dùng dữ liệu và hàm của vòng trước.
 | 8 | `workers/closing`, `inventory`, `reports` | `closing/end-of-day-replenishment` | Sự kiện giờ đóng cửa; 4.4; 5.4 | BH-05, TH-03, TK-06 | KT-07, KT-14 | **xong** (13/11/2026) |
 | 9 | `reports` | `reports/revenue-stock-staff` | 5.1, 5.2, 5.3, 5.5 | DT-01 đến DT-05 | KT-10, 13, 15 | **xong** (13/11/2026) |
 | 10 | `web` | `web/role-screens` | Giao diện theo 5 vai trò; dữ liệu demo | Ma trận 2.2 | chạy tay luồng P1–P5 | **xong** (13/11/2026): lượt Trụ sở (`web/hq-screens`), NVBH (`web/sales-screens`), Thu ngân (`web/cashier-screens`), NV kho (`web/warehouse-screens`), Quản lý cửa hàng kèm duyệt thay và dữ liệu demo (`web/manager-screens`) |
+| 11 | `inventory`, `staff`, `web` | `inventory/branch-transfer` | 4.6 | TK-07, NV-04 | KT-17 | đã code (17/11/2026), chờ commit |
 
 Xong một vòng thì sửa cột "Trạng thái" ở bảng này, dòng "Vòng tiếp theo" ở trên, và cột "Trạng thái" của các
 tình huống KT trong [tests.md](tests.md).
@@ -152,6 +153,16 @@ duyệt thì thêm file migration mới, không sửa `001_schema.sql`.
 - Thêm `scripts/seed-demo.py` tạo dữ liệu demo theo mã ở [tests.md](tests.md) mục 2.
 - Nghiệm thu: chạy tay đủ năm luồng P1 đến P5 của đặc tả mục 3 trên `http://localhost:3000`.
 
+### Vòng 11 – Điều chuyển giữa chi nhánh (`inventory`)
+
+- Chức năng 4.6 (thêm 17/11/2026, quyết định 16). Không thêm bảng: hai loại phiếu kho `OUT_TRANSFER`, `IN_TRANSFER`
+  và cột `stock_slips.transfer_slip_id` ở `005_stock_transfer.sql`.
+- Xuất điều chuyển đi đường `POST /stock-slips` và duyệt như TK-03. Nhận hàng chép dòng của phiếu xuất, ghi nhận
+  ngay. Mọi lệnh ghi nằm trong `api/services/inventory.py`.
+- NV-04 trong `api/services/staff.py` thêm điều kiện "còn hàng điều chuyển đang chuyển đến".
+- Giao diện: trang Phiếu kho lập được Xuất điều chuyển; trang Hàng điều chuyển đến cho NV kho nhận hàng.
+- Nghiệm thu: KT-17.
+
 ## 6. Phân vai (dùng cho báo cáo)
 
 Chia theo kho dữ liệu, vì đặc tả 6.1 quy định mỗi kho chỉ do một nhóm ghi.
@@ -162,7 +173,7 @@ Chia theo kho dữ liệu, vì đặc tả 6.1 quy định mỗi kho chỉ do m�
 | 2. Danh mục và báo cáo bán hàng | kho D1, D2; `products`, `customers`; báo cáo 5.1, 5.2, 5.5 | 1.1–1.4, 2.1–2.4; SP, KH, DT | KT-10, KT-15 | Dữ liệu danh mục, lịch sử giá, dùng trạng thái thay cho xóa; chỉ tiêu quản trị và ba mốc thời gian của doanh thu |
 | 3. Đơn hàng và trả hàng | kho D3; `orders`, `returns`, `workers/closing` | 3.1, 3.4 (hủy đơn, phiếu trả); BH-01..05, TH-01..03, TH-05 | KT-02, 03, 07, 08 | Vòng đời chứng từ dạng máy trạng thái; chốt giá tại thời điểm; quy trình phê duyệt; sự kiện theo thời gian |
 | 4. Thanh toán, hóa đơn, ca | kho D4; `payments`, `shifts`, `bank-mock` | 3.2, 3.3, 3.4 (hoàn tiền), 3.5; TT-01..04, TH-04, CA-01..04 | KT-01, 04, 05, 09, 11, 16 | Giao dịch tiền không trùng lặp, tích hợp cổng thanh toán và tra soát; đối soát tiền mặt, kiểm soát nội bộ |
-| 5. Tồn kho | kho D5; `inventory`; báo cáo 5.3, 5.4 | 4.1–4.5; TK-01..06 | KT-06, 12, 14 | Sổ kho theo chứng từ, giữ hàng; giao dịch CSDL, khóa và tranh chấp đồng thời |
+| 5. Tồn kho | kho D5; `inventory`; báo cáo 5.3, 5.4 | 4.1–4.6; TK-01..07 | KT-06, 12, 14, 17 | Sổ kho theo chứng từ, giữ hàng; giao dịch CSDL, khóa và tranh chấp đồng thời |
 
 ## 7. Quyết định đã chốt
 
@@ -188,7 +199,11 @@ Các điểm đặc tả để trống ở mức triển khai, đã được ng�
 12. Vòng 3 (duyệt 13/11/2026): số điện thoại khách chuẩn hóa bằng cách bỏ khoảng trắng, `.`, `-`, `(`, `)` và đổi
     `+84` thành `0`; hợp lệ khi là `0` và 9 hoặc 10 chữ số (di động 10 số, máy bàn 11 số). 2.1 gặp số đã có thì trả
     hồ sơ có sẵn với HTTP 200, không sửa họ tên, địa chỉ. 2.3 tra đúng một tiêu chí (số hoặc mã), trả mảng 0–1 phần
-    tử; tra hoặc sửa KHLE trả `RULE_VIOLATION` KH-02 ([api.md](api.md) nhóm 2).
+    tử; tra hoặc sửa KHLE trả `RULE_VIOLATION` KH-02 ([api.md](api.md) nhóm 2). Bổ sung 16/11/2026 (tính năng thêm
+    ngoài đặc tả 2.3): `GET /customers` không tham số trả cả danh sách khách có hồ sơ cho NVBH, không phân trang
+    phía server; KH-04 chỉ bảo vệ lịch sử mua nên vẫn giữ. Giao diện: lập đơn chọn Khách lẻ, Khách đã lưu hoặc Khách
+    mới (gọi 2.1 rồi 3.1, hai lệnh riêng; lập đơn lỗi thì hồ sơ khách vẫn được lưu); trang Khách hàng không còn nút
+    thêm khách, chỉ sửa số điện thoại và địa chỉ.
 
 13. Vòng 4 (duyệt 13/11/2026): lý do hủy đơn, xuất hủy, điều chỉnh là văn bản tự do; báo cáo gom theo đúng chuỗi lý
     do; giao diện gợi ý sẵn các lý do thường gặp. Nhập hàng từ kho tổng/NCC cho sản phẩm Ngừng bán được phép. Lý do
@@ -205,6 +220,10 @@ Các điểm đặc tả để trống ở mức triển khai, đã được ng�
     bắt buộc lý do (K-03); QL duyệt thì ghi chú tùy chọn. Duyệt hoàn tiền mặt ghi `cash_refund_approved_by`,
     `cash_refund_reason` lên giao dịch hoàn điện tử Thất bại (không đổi trạng thái, số tiền); lần hoàn kế tiếp là tiền
     mặt và chép hai trường này sang giao dịch mới.
+16. Vòng 11 (duyệt 17/11/2026): thêm 4.6 Điều chuyển hàng giữa chi nhánh. NV kho chi nhánh gửi lập phiếu Xuất điều
+    chuyển, QL chi nhánh gửi duyệt (như TK-03, không duyệt thay). Không lưu yêu cầu điều chuyển giữa chi nhánh, chỉ
+    có phiếu. Chi nhánh nhận ghi nhận đúng số đã xuất, sai lệch xử lý bằng điều chỉnh (TK-04). NV kho chi nhánh nhận
+    ghi nhận ngay, không duyệt. Báo cáo 5.3 không thêm phần điều chuyển. BFD, DFD do nhóm vẽ lại.
 
 Giả định của người dựng khung, **chưa được người dùng xác nhận**. Vòng nào chạm tới thì nêu lại ở `/plan-task`:
 

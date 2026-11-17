@@ -4,7 +4,7 @@
 
 ## Dự án
 Hệ thống thông tin quản lý bán hàng cho chuỗi cửa hàng (Nhóm 3): bán hàng, thanh toán, đổi trả, tồn kho theo
-chi nhánh và báo cáo. 6 nhóm chức năng, 27 chức năng con, 18 bảng. Một API FastAPI + một PostgreSQL + giao diện
+chi nhánh và báo cáo. 6 nhóm chức năng, 28 chức năng con, 18 bảng. Một API FastAPI + một PostgreSQL + giao diện
 React, chạy bằng Docker Compose.
 
 ## Bắt đầu từ đâu
@@ -19,7 +19,8 @@ React, chạy bằng Docker Compose.
   đúng; chưa có thì đề xuất ở `/plan-task` và ghi vào `docs/` trước khi code.
 - Đặc tả thiếu hoặc mâu thuẫn thì DỪNG và hỏi, không đoán. Các giả định chưa được xác nhận nằm ở `docs/plan.md` mục 7.
 - Không thêm thư viện. Python: fastapi, uvicorn, asyncpg, pydantic (v2), httpx; test: pytest, pytest-asyncio; lint: ruff.
-  Giao diện: react, react-dom, react-router-dom, antd, @tanstack/react-query, openapi-fetch; công cụ: vite,
+  Giao diện: react, react-dom, react-router-dom, antd, @tanstack/react-query, openapi-fetch, recharts (biểu đồ
+  báo cáo, duyệt 16/11/2026); công cụ: vite,
   typescript, vitest, openapi-typescript. Cần thêm thì dừng và hỏi.
 
 ## Bản đồ repo

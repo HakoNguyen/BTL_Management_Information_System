@@ -1,39 +1,68 @@
 // Ô chọn khách và các dòng sản phẩm của đơn (3.1). Tồn khả dụng lấy từ GET /stock (4.1 phục vụ 3.1).
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Button, Form, Input, InputNumber, Select, Space, message } from "antd";
-import { client, unwrap } from "../../api/client";
+import { useQuery } from "@tanstack/react-query";
+import { Col, Form, Input, InputNumber, Row, Segmented, Select, Space } from "antd";
+import { client, unwrap, type Schemas } from "../../api/client";
 import { PRODUCT_STATUS_LABEL } from "../../labels";
+import { AddButton, RemoveButton } from "../../ui";
 import { stockText } from "./stockText";
 
-/** Mã khách: gõ thẳng (KHLE cho khách lẻ) hoặc tra theo số điện thoại (2.3). */
+export type CustomerMode = "WALK_IN" | "SAVED" | "NEW";
+/** Form lập đơn: `customer_id` chỉ dùng khi chọn khách đã lưu; khách mới ghi nhận qua 2.1 trước. */
+export type OrderForm = Schemas["OrderCreate"] & {
+  mode: CustomerMode;
+  new_customer?: Schemas["CustomerCreate"];
+};
+
+/** Khách lẻ (KHLE, KH-02), khách đã lưu (chọn từ danh sách 2.3) hoặc khách mới (2.1, KH-01). */
 export function CustomerField() {
-  const form = Form.useFormInstance();
-  const lookup = useMutation({
-    mutationFn: (phone: string) => unwrap(client.GET("/customers", { params: { query: { phone } } })),
-    onSuccess: (found) => {
-      if (found.length === 0) return message.warning("Không tìm thấy");
-      form.setFieldValue("customer_id", found[0].customer_id);
-      message.success(`Khách: ${found[0].full_name}`);
-    },
-    onError: (error) => message.error(error.message, 6),
+  const mode = Form.useWatch("mode", Form.useFormInstance()) as CustomerMode | undefined;
+  const customers = useQuery({
+    queryKey: ["customers", "all"],
+    queryFn: () => unwrap(client.GET("/customers")),
+    enabled: mode === "SAVED",
   });
   return (
     <>
-      <Form.Item label="Tra khách theo số điện thoại">
-        <Input.Search
-          enterButton="Tra"
-          loading={lookup.isPending}
-          onSearch={(phone) => phone && lookup.mutate(phone)}
+      <Form.Item label="Khách hàng" name="mode">
+        <Segmented<CustomerMode>
+          options={[
+            { value: "WALK_IN", label: "Khách lẻ" },
+            { value: "SAVED", label: "Khách đã lưu" },
+            { value: "NEW", label: "Khách mới" },
+          ]}
         />
       </Form.Item>
-      <Form.Item
-        label="Mã khách"
-        name="customer_id"
-        extra="Khách không cung cấp thông tin: KHLE"
-        rules={[{ required: true }]}
-      >
-        <Input />
-      </Form.Item>
+      {mode === "SAVED" && (
+        <Form.Item name="customer_id" rules={[{ required: true, message: "Chọn khách" }]}>
+          <Select
+            showSearch
+            optionFilterProp="label"
+            placeholder="Tìm theo tên, số điện thoại hoặc mã khách"
+            loading={customers.isPending}
+            options={(customers.data ?? []).map((c) => ({
+              value: c.customer_id,
+              label: `${c.full_name} · ${c.phone} · ${c.customer_id}`,
+            }))}
+          />
+        </Form.Item>
+      )}
+      {mode === "NEW" && (
+        <Space wrap align="start">
+          <Form.Item
+            label="Họ tên"
+            name={["new_customer", "full_name"]}
+            rules={[{ required: true, whitespace: true }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item label="Số điện thoại" name={["new_customer", "phone"]} rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Địa chỉ" name={["new_customer", "address"]}>
+            <Input />
+          </Form.Item>
+        </Space>
+      )}
     </>
   );
 }
@@ -71,24 +100,29 @@ export function ItemsField({ withLevels = false }: { withLevels?: boolean }) {
     >
       {(fields, { add, remove }, { errors }) => (
         <>
+          <Row gutter={8} style={{ fontWeight: 500, marginBottom: 6 }}>
+            <Col flex="auto">Sản phẩm</Col>
+            <Col flex="96px">Số lượng</Col>
+            <Col flex="32px" />
+          </Row>
           {fields.map((field) => (
-            <Space key={field.key} align="baseline" wrap>
-              <Form.Item name={[field.name, "product_id"]} rules={[{ required: true }]}>
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  placeholder="Sản phẩm"
-                  style={{ width: 340 }}
-                  options={options}
-                />
-              </Form.Item>
-              <Form.Item name={[field.name, "quantity"]} rules={[{ required: true }]}>
-                <InputNumber min={1} precision={0} placeholder="Số lượng" />
-              </Form.Item>
-              <Button onClick={() => remove(field.name)}>Bỏ</Button>
-            </Space>
+            <Row key={field.key} gutter={8} wrap={false}>
+              <Col flex="auto" style={{ minWidth: 0 }}>
+                <Form.Item name={[field.name, "product_id"]} rules={[{ required: true, message: "Chọn sản phẩm" }]}>
+                  <Select showSearch optionFilterProp="label" placeholder="Gõ mã hoặc tên sản phẩm" options={options} />
+                </Form.Item>
+              </Col>
+              <Col flex="96px">
+                <Form.Item name={[field.name, "quantity"]} rules={[{ required: true, message: "Nhập số lượng" }]}>
+                  <InputNumber min={1} precision={0} style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              <Col flex="32px">
+                <RemoveButton onClick={() => remove(field.name)} />
+              </Col>
+            </Row>
           ))}
-          <Button onClick={() => add()}>Thêm dòng</Button>
+          <AddButton onClick={() => add()}>+ Thêm sản phẩm</AddButton>
           <Form.ErrorList errors={errors} />
         </>
       )}

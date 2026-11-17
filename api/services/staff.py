@@ -25,6 +25,7 @@ from common.constants import (
     Role,
     ShiftStatus,
     SlipStatus,
+    SlipType,
     TxnStatus,
     TxnType,
 )
@@ -124,6 +125,12 @@ async def deactivate_branch(conn: asyncpg.Connection, branch_id: str) -> Branch:
                                         WHERE t.return_id = r.return_id
                                           AND t.type = $7 AND t.status = $8))
                 AS unrefunded_return,
+              -- TK-07: xuất điều chuyển tới chi nhánh này chưa hủy và chưa được nhận
+              EXISTS (SELECT 1 FROM stock_slips k
+                      WHERE k.type = $9 AND k.counterparty = $1 AND k.status <> $10
+                        AND NOT EXISTS (SELECT 1 FROM stock_slips n
+                                        WHERE n.transfer_slip_id = k.slip_id))
+                AS incoming_transfer,
               (SELECT max(completed_at) FROM orders WHERE branch_id = $1) AS last_completed_at
             """,
             branch_id,
@@ -134,6 +141,8 @@ async def deactivate_branch(conn: asyncpg.Connection, branch_id: str) -> Branch:
             ReturnStatus.APPROVED,
             TxnType.REFUND,
             TxnStatus.SUCCESS,
+            SlipType.OUT_TRANSFER,
+            SlipStatus.CANCELLED,
         )
         last = check["last_completed_at"]
         unmet = [
@@ -145,6 +154,7 @@ async def deactivate_branch(conn: asyncpg.Connection, branch_id: str) -> Branch:
                 (check["pending_stock_slip"], "còn phiếu kho chờ xử lý"),
                 (check["pending_return"], "còn phiếu trả chờ duyệt"),
                 (check["unrefunded_return"], "còn phiếu trả Đã duyệt chưa hoàn tiền xong"),
+                (check["incoming_transfer"], "còn hàng điều chuyển đang chuyển đến"),
                 (
                     last is not None and clock.now() <= last + timedelta(days=RETURN_WINDOW_DAYS),
                     f"chưa quá {RETURN_WINDOW_DAYS} ngày kể từ đơn hoàn tất gần nhất",

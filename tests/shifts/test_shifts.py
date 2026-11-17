@@ -19,15 +19,29 @@ from fixtures import (
     login_as,
     open_shift,
     seed_employee,
+    seed_order,
     seed_product,
+    seed_return_slip,
+    seed_shift,
     seed_staff,
     seed_stock,
+    seed_transaction,
     start_payment,
 )
 
 from common import clock
 from common.clock import VN_TZ
-from common.constants import BranchStatus, EmployeeStatus, ErrorCode, Role, ShiftStatus, TxnMethod
+from common.constants import (
+    BranchStatus,
+    EmployeeStatus,
+    ErrorCode,
+    OrderStatus,
+    ReturnStatus,
+    Role,
+    ShiftStatus,
+    TxnMethod,
+    TxnStatus,
+)
 
 pytestmark = pytest.mark.db
 
@@ -363,3 +377,31 @@ async def test_list_and_get_shifts(client: httpx.AsyncClient, staff: None) -> No
     assert response.json()["error_code"] == ErrorCode.NOT_FOUND
     bh = await login_as(client, SALES_ID)
     _error(await client.get("/shifts", headers=bh), ErrorCode.FORBIDDEN, "K-01")
+
+
+async def test_shift_totals(
+    client: httpx.AsyncClient, conn: asyncpg.Connection, staff: None
+) -> None:
+    """Tổng ca (tính năng thêm): thu, hoàn Thành công mọi phương thức; Thất bại, Chờ không tính."""
+    await seed_product(conn, "A")
+    shift_id = await seed_shift(conn, CASHIER_ID)
+    paid = [await seed_order(conn, SALES_ID, status=OrderStatus.COMPLETED) for _ in range(3)]
+    other = await seed_order(conn, SALES_ID, status=OrderStatus.AWAITING_PAYMENT)
+    for order_id, amount, method, status in (
+        (paid[0], 200_000, TxnMethod.CASH, TxnStatus.SUCCESS),
+        (paid[1], 1_000_000, TxnMethod.CARD, TxnStatus.SUCCESS),
+        (paid[2], 300_000, TxnMethod.TRANSFER, TxnStatus.SUCCESS),
+        (other, 400_000, TxnMethod.CARD, TxnStatus.FAILED),
+        (other, 400_000, TxnMethod.TRANSFER, TxnStatus.PENDING),
+    ):
+        await seed_transaction(conn, order_id, shift_id, status, amount=amount, method=method)
+    slip = await seed_return_slip(conn, paid[0], SALES_ID, ReturnStatus.APPROVED, MANAGER_ID)
+    await seed_transaction(conn, paid[0], shift_id, return_id=slip, amount=50_000)
+
+    response = await client.get(f"/shifts/{shift_id}", headers=await login_as(client, CASHIER_ID))
+    assert response.status_code == 200, response.text
+    detail = response.json()
+    assert detail["total_collected"] == 1_500_000
+    assert detail["total_refunded"] == 50_000
+    assert detail["net_total"] == 1_450_000
+    assert detail["expected_cash"] == 150_000  # tiền mặt kỳ vọng không đổi: 0 + 200.000 − 50.000

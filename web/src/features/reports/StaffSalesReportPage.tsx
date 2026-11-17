@@ -4,6 +4,7 @@ import { Card, Table } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { moneyColumn } from "../../ui";
+import { BarChartCard, CHART_COLOR } from "./BarChartCard";
 import { ReportFilter, ReportHeader, type ReportParams } from "./ReportFilter";
 
 export function StaffSalesReportPage() {
@@ -19,6 +20,21 @@ export function StaffSalesReportPage() {
     <Card title="Doanh số nhân viên">
       <ReportFilter onSubmit={setParams} />
       <ReportHeader report={data} error={report.error} />
+      {data && (
+        <div style={{ marginBottom: 16 }}>
+          <BarChartCard
+            title="Doanh thu theo nhân viên"
+            data={data.lines.map((line) => ({ ...line, who: `${line.full_name} · ${line.branch_id}` }))}
+            label="who"
+            money
+            series={[
+              { key: "gross_revenue", name: "Doanh thu gộp", color: CHART_COLOR.gross },
+              { key: "returns_value", name: "Hàng trả", color: CHART_COLOR.returns },
+              { key: "net_revenue", name: "Doanh thu thuần", color: CHART_COLOR.net },
+            ]}
+          />
+        </div>
+      )}
       {data && (
         <Table<Schemas["StaffSalesLine"]>
           rowKey={(line) => `${line.branch_id}-${line.employee_id}`}

@@ -23,9 +23,12 @@ async def create_order(body: OrderCreate, user: SalesUser, conn: Conn) -> Order:
 
 @router.get("/orders")
 async def list_orders(
-    user: OrderViewer, conn: Conn, status: OrderStatus | None = None
+    user: OrderViewer,
+    conn: Conn,
+    status: OrderStatus | None = None,
+    shift_id: str | None = None,
 ) -> list[Order]:
-    return await orders.list_orders(conn, user, status)
+    return await orders.list_orders(conn, user, status, shift_id)
 
 
 @router.get("/orders/{order_id}")

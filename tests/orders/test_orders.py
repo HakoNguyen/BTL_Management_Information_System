@@ -33,6 +33,7 @@ from common.constants import (
     OrderStatus,
     ProductStatus,
     Role,
+    ShiftStatus,
     TxnStatus,
 )
 from common.errors import AppError
@@ -124,6 +125,25 @@ async def test_roles(client: httpx.AsyncClient, world: None) -> None:
     assert [o["order_id"] for o in response.json()] == [order["order_id"]]
     response = await client.get("/orders?status=CANCELLED", headers=cashier)
     assert response.json() == []
+
+
+async def test_list_by_shift(
+    client: httpx.AsyncClient, conn: asyncpg.Connection, world: None
+) -> None:
+    """Lọc theo ca (tính năng thêm): chỉ đơn thu Thành công trong ca đó; thu Thất bại không tính."""
+    old = await seed_shift(conn, CASHIER_ID, status=ShiftStatus.SETTLED)
+    current = await seed_shift(conn, CASHIER_ID)
+    first = await seed_order(conn, SALES_ID, status=OrderStatus.COMPLETED, completed_at=NOW)
+    second = await seed_order(conn, SALES_ID, status=OrderStatus.COMPLETED, completed_at=NOW)
+    unpaid = await seed_order(conn, SALES_ID, status=OrderStatus.AWAITING_PAYMENT)
+    await seed_transaction(conn, first, old)
+    await seed_transaction(conn, unpaid, old, status=TxnStatus.FAILED)
+    await seed_transaction(conn, second, current)
+    cashier = await login_as(client, CASHIER_ID)
+    for shift_id, expected in ((old, [first]), (current, [second])):
+        response = await client.get("/orders", params={"shift_id": shift_id}, headers=cashier)
+        assert response.status_code == 200, response.text
+        assert [o["order_id"] for o in response.json()] == expected
 
 
 async def test_other_branch_forbidden(

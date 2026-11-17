@@ -73,8 +73,20 @@ async def _detail(conn: asyncpg.Connection, shift_id: str) -> ShiftDetail:
         shift_id,
         TxnStatus.SUCCESS,
     )
+    # Tổng ca (tính năng thêm): thu, hoàn Thành công mọi phương thức; dẫn xuất, không lưu
+    totals = await conn.fetchrow(
+        "SELECT coalesce(sum(amount) FILTER (WHERE type = $3), 0)::bigint AS total_collected,"
+        " coalesce(sum(amount) FILTER (WHERE type = $4), 0)::bigint AS total_refunded"
+        " FROM transactions WHERE shift_id = $1 AND status = $2",
+        shift_id,
+        TxnStatus.SUCCESS,
+        TxnType.COLLECT,
+        TxnType.REFUND,
+    )
     return ShiftDetail(
         **row,
+        **totals,
+        net_total=totals["total_collected"] - totals["total_refunded"],
         electronic=[ShiftMethodTotal(**r) for r in electronic],
         failed=[Transaction(**t) for t in txns if t["status"] == TxnStatus.FAILED],
         pending=[Transaction(**t) for t in txns if t["status"] == TxnStatus.PENDING],

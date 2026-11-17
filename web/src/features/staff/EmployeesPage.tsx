@@ -22,7 +22,7 @@ import {
   ROLE_LABEL,
   optionsOf,
 } from "../../labels";
-import { FormModal, STATUS_COLOR, useWrite } from "../../ui";
+import { BranchFilter, FormModal, STATUS_COLOR, useWrite } from "../../ui";
 
 type Employee = Schemas["Employee"];
 type Path = { params: { path: { employee_id: string } } };
@@ -49,6 +49,7 @@ export function EmployeesPage() {
     queryFn: () => unwrap(client.GET("/branches")),
   });
   const [role, setRole] = useState<Role | "ALL">("ALL");
+  const [branchId, setBranchId] = useState<string>();
   const [dialog, setDialog] = useState<{ kind: Dialog; employee?: Employee } | null>(null);
   const close = () => setDialog(null);
   const id = dialog?.employee?.employee_id ?? "";
@@ -147,17 +148,21 @@ export function EmployeesPage() {
       title="Nhân viên"
       extra={<Button onClick={() => setDialog({ kind: "create" })}>Thêm nhân viên</Button>}
     >
-      <Segmented<Role | "ALL">
-        value={role}
-        onChange={setRole}
-        options={[{ value: "ALL", label: "Tất cả" }, ...optionsOf(ROLE_LABEL)]}
-        style={{ marginBottom: 16 }}
-      />
+      <Space wrap style={{ marginBottom: 16 }}>
+        <Segmented<Role | "ALL">
+          value={role}
+          onChange={setRole}
+          options={[{ value: "ALL", label: "Tất cả" }, ...optionsOf(ROLE_LABEL)]}
+        />
+        <BranchFilter value={branchId} onChange={setBranchId} />
+      </Space>
       <Table<Employee>
-        key={role} // đổi bộ lọc thì quay về trang 1
+        key={`${role}-${branchId}`} // đổi bộ lọc thì quay về trang 1
         rowKey="employee_id"
         loading={employees.isPending}
-        dataSource={employees.data?.filter((e) => role === "ALL" || e.role === role)}
+        dataSource={employees.data?.filter(
+          (e) => (role === "ALL" || e.role === role) && (!branchId || e.branch_id === branchId),
+        )}
         pagination={{ pageSize: 5, simple: true, hideOnSinglePage: true }}
         scroll={{ x: true }}
         columns={[

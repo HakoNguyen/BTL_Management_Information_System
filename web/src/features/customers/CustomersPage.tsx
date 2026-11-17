@@ -1,7 +1,8 @@
-// 2.1 Ghi nhận, 2.2 cập nhật, 2.3 tra cứu khách hàng; 2.4 lịch sử mua và trả (NVBH).
-// KH-01..KH-04 do API kiểm tra (chuẩn hóa số, trùng số, không tra KHLE, xác minh số khi xem lịch sử).
+// 2.2 cập nhật, 2.3 danh sách và tra cứu khách hàng; 2.4 lịch sử mua và trả (NVBH). Khách mới ghi nhận
+// (2.1) ngay lúc lập đơn ở trang Đơn hàng. KH-01..KH-04 do API kiểm tra (chuẩn hóa số, trùng số, không
+// tra KHLE, xác minh số khi xem lịch sử).
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography } from "antd";
+import { Alert, Button, Card, Form, Input, Modal, Space, Table, Tag, Typography } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { dateTime } from "../../format";
@@ -10,22 +11,20 @@ import { FormModal, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
 import { returnColumns } from "../returns/ReturnsPage";
 
 type Customer = Schemas["Customer"];
-type Search = { by: "phone" | "customer_id"; value: string };
 
 const customerPath = (id: string) => ({ params: { path: { customer_id: id } } });
 
 export function CustomersPage() {
-  const [by, setBy] = useState<Search["by"]>("phone");
-  const [search, setSearch] = useState<Search | null>(null);
   const customers = useQuery({
-    queryKey: ["customers", search],
-    queryFn: () =>
-      unwrap(client.GET("/customers", { params: { query: { [search!.by]: search!.value } } })),
-    enabled: search !== null,
+    queryKey: ["customers", "all"],
+    queryFn: () => unwrap(client.GET("/customers")),
   });
-  const [dialog, setDialog] = useState<{ kind: "create" | "edit" | "verify"; customer?: Customer } | null>(
-    null,
+  const [keyword, setKeyword] = useState("");
+  const k = keyword.trim().toLowerCase();
+  const shown = (customers.data ?? []).filter(
+    (c) => !k || [c.customer_id, c.full_name, c.phone ?? ""].some((v) => v.toLowerCase().includes(k)),
   );
+  const [dialog, setDialog] = useState<{ kind: "edit" | "verify"; customer: Customer } | null>(null);
   const [history, setHistory] = useState<{ customerId: string; phone: string } | null>(null);
   const close = () => setDialog(null);
   const id = dialog?.customer?.customer_id ?? "";
@@ -42,64 +41,30 @@ export function CustomersPage() {
     retry: false,
   });
 
-  const create = useWrite(
-    (body: Schemas["CustomerCreate"]) => unwrap(client.POST("/customers", { body })),
-    ["customers"],
-  );
   const update = useWrite(
     (body: Schemas["CustomerUpdate"]) =>
       unwrap(client.PATCH("/customers/{customer_id}", { ...customerPath(id), body })),
     ["customers"],
   );
-  // Số đã có hồ sơ thì API trả hồ sơ có sẵn (2.1): hiện luôn hồ sơ đó
-  const createAndShow = async (body: Schemas["CustomerCreate"]) => {
-    const customer = await create.mutateAsync(body);
-    setSearch({ by: "customer_id", value: customer.customer_id });
-  };
-
-  const fields = (
-    <>
-      <Form.Item label="Họ tên" name="full_name" rules={[{ required: true, whitespace: true }]}>
-        <Input />
-      </Form.Item>
-      <Form.Item label="Số điện thoại" name="phone" rules={[{ required: true }]}>
-        <Input />
-      </Form.Item>
-      <Form.Item label="Địa chỉ" name="address">
-        <Input />
-      </Form.Item>
-    </>
-  );
 
   return (
-    <Card
-      title="Khách hàng"
-      extra={<Button onClick={() => setDialog({ kind: "create" })}>Thêm khách</Button>}
-    >
-      <Space.Compact style={{ marginBottom: 16, maxWidth: 480, width: "100%" }}>
-        <Select<Search["by"]>
-          value={by}
-          onChange={setBy}
-          style={{ width: 150 }}
-          options={[
-            { value: "phone", label: "Số điện thoại" },
-            { value: "customer_id", label: "Mã khách" },
-          ]}
-        />
-        <Input.Search
-          enterButton="Tìm"
-          onSearch={(value) => value.trim() && setSearch({ by, value: value.trim() })}
-        />
-      </Space.Compact>
+    <Card title="Khách hàng">
+      <Input.Search
+        allowClear
+        placeholder="Lọc theo tên, số điện thoại hoặc mã khách"
+        style={{ marginBottom: 16, maxWidth: 420 }}
+        value={keyword}
+        onChange={(event) => setKeyword(event.target.value)}
+      />
       {customers.error && (
         <Alert type="error" showIcon message={customers.error.message} style={{ marginBottom: 16 }} />
       )}
       <Table<Customer>
         rowKey="customer_id"
-        loading={customers.isFetching}
-        dataSource={customers.data}
-        locale={{ emptyText: search ? "Không tìm thấy" : "Nhập số điện thoại hoặc mã khách để tìm" }}
-        pagination={false}
+        loading={customers.isPending}
+        dataSource={shown}
+        locale={{ emptyText: k ? "Không tìm thấy" : "Chưa có khách có hồ sơ" }}
+        pagination={{ pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }}
         scroll={{ x: true }}
         columns={[
           { title: "Mã khách", dataIndex: "customer_id" },
@@ -123,20 +88,22 @@ export function CustomersPage() {
         ]}
       />
 
-      {dialog?.kind === "create" && (
-        <FormModal<Schemas["CustomerCreate"]> title="Thêm khách" onClose={close} onSubmit={createAndShow}>
-          {fields}
-        </FormModal>
-      )}
-
       {dialog?.kind === "edit" && (
         <FormModal<Schemas["CustomerUpdate"]>
-          title={`Sửa khách ${id}`}
-          initialValues={{ ...dialog.customer, phone: dialog.customer?.phone ?? undefined }}
+          title={`Sửa khách ${id} – ${dialog.customer.full_name}`}
+          initialValues={{
+            phone: dialog.customer.phone ?? undefined,
+            address: dialog.customer.address,
+          }}
           onClose={close}
           onSubmit={update.mutateAsync}
         >
-          {fields}
+          <Form.Item label="Số điện thoại" name="phone" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Địa chỉ" name="address">
+            <Input />
+          </Form.Item>
         </FormModal>
       )}
 

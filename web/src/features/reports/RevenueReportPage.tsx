@@ -1,11 +1,14 @@
 // 5.1 Doanh thu (DT-01..DT-05). Mọi số liệu do API tính; trang chỉ hiển thị.
 import { useQuery } from "@tanstack/react-query";
-import { Card, Space, Table } from "antd";
+import { Card, Col, Row as GridRow, Space, Table } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { TXN_METHOD_LABEL, TXN_TYPE_LABEL } from "../../labels";
 import { moneyColumn } from "../../ui";
+import { BarChartCard, CHART_COLOR } from "./BarChartCard";
+import { byMethod } from "./byMethod";
 import { ReportFilter, ReportHeader, type ReportParams } from "./ReportFilter";
+import { RevenueTrendCard } from "./RevenueTrendCard";
 
 type Summary = Schemas["RevenueSummary"];
 type Row = Summary & { key: string; label: string };
@@ -31,6 +34,42 @@ export function RevenueReportPage() {
     <Card title="Báo cáo doanh thu">
       <ReportFilter onSubmit={setParams} />
       <ReportHeader report={data} error={report.error} />
+      {data && params && (
+        <div style={{ marginBottom: 16 }}>
+          <RevenueTrendCard params={params} />
+        </div>
+      )}
+      {data && (
+        <GridRow gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          {data.branches.length > 1 && (
+            <Col xs={24} xl={12}>
+              <BarChartCard
+                title="Doanh thu theo chi nhánh"
+                data={data.branches}
+                label="branch_id"
+                money
+                series={[
+                  { key: "gross_revenue", name: "Doanh thu gộp", color: CHART_COLOR.gross },
+                  { key: "returns_value", name: "Hàng trả", color: CHART_COLOR.returns },
+                  { key: "net_revenue", name: "Doanh thu thuần", color: CHART_COLOR.net },
+                ]}
+              />
+            </Col>
+          )}
+          <Col xs={24} xl={12}>
+            <BarChartCard
+              title="Tiền thu và hoàn theo phương thức"
+              data={byMethod(data.total.payments)}
+              label="method"
+              money
+              series={[
+                { key: "COLLECT", name: TXN_TYPE_LABEL.COLLECT, color: CHART_COLOR.gross },
+                { key: "REFUND", name: TXN_TYPE_LABEL.REFUND, color: CHART_COLOR.returns },
+              ]}
+            />
+          </Col>
+        </GridRow>
+      )}
       {data && (
         <Table<Row>
           rowKey="key"

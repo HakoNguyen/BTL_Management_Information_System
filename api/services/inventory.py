@@ -1,4 +1,4 @@
-"""Nhóm 4 – Tồn kho (kho D5): chức năng 4.1 đến 4.5 và năm hàm giao cho nhóm 3.
+"""Nhóm 4 – Tồn kho (kho D5): chức năng 4.1 đến 4.6 và năm hàm giao cho nhóm 3.
 
 Mọi lệnh ghi vào `stock`, `stock_slips`, `stock_slip_items`, `replenishment_requests`,
 `replenishment_request_items` nằm ở file này (TK-01).
@@ -35,13 +35,15 @@ OUT_TYPES = (
     SlipType.OUT_DISPOSAL,
     SlipType.OUT_TO_WAREHOUSE,
     SlipType.ADJUST_DOWN,
+    SlipType.OUT_TRANSFER,
 )
-# Phiếu NV kho lập, QL duyệt (TK-03, TK-04)
+# Phiếu NV kho lập, QL duyệt (TK-03, TK-04, TK-07)
 APPROVAL_TYPES = (
     SlipType.ADJUST_UP,
     SlipType.OUT_DISPOSAL,
     SlipType.OUT_TO_WAREHOUSE,
     SlipType.ADJUST_DOWN,
+    SlipType.OUT_TRANSFER,
 )
 
 # Tồn khả dụng = tồn − Σ phiếu xuất Chờ xử lý cùng chi nhánh, sản phẩm (TK-01, dẫn xuất)
@@ -207,6 +209,18 @@ async def _ensure_products(conn: asyncpg.Connection, lines: Lines) -> None:
         raise AppError(ErrorCode.NOT_FOUND, f"Không tìm thấy sản phẩm {', '.join(missing)}")
 
 
+async def _ensure_on_sale(conn: asyncpg.Connection, lines: Lines, rule: str) -> None:
+    stopped = await conn.fetch(
+        "SELECT product_id FROM products WHERE product_id = ANY($1::text[]) AND status <> $2"
+        " ORDER BY product_id",
+        [product_id for product_id, _ in lines],
+        ProductStatus.ON_SALE,
+    )
+    if stopped:
+        names = ", ".join(row["product_id"] for row in stopped)
+        raise AppError(ErrorCode.RULE_VIOLATION, f"Sản phẩm {names} đã ngừng bán", rule=rule)
+
+
 # ---------------------------------------------------------------- Xem phiếu
 
 
@@ -308,9 +322,17 @@ async def create_inbound(
 async def create_slip(
     conn: asyncpg.Connection, body: StockSlipCreate, user: CurrentUser
 ) -> StockSlip:
-    """TK-03, TK-04: NV kho lập, có lý do; phiếu xuất chỉ lập khi đủ tồn khả dụng và giữ hàng."""
+    """TK-03, TK-04, TK-07: NV kho lập, có lý do; phiếu xuất chỉ lập khi đủ tồn khả dụng và giữ
+    hàng. Xuất điều chuyển gửi một chi nhánh Hoạt động khác, sản phẩm Đang bán."""
     lines = _validate_lines(body.items)
     branch_id = user.branch_id or ""
+    is_transfer = body.type == SlipType.OUT_TRANSFER
+    if is_transfer != (body.counterparty is not None):
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR,
+            "Chi nhánh nhận bắt buộc với phiếu xuất điều chuyển và chỉ dùng cho loại phiếu đó",
+            rule="TK-07",
+        )
     if body.adjusts_slip_id is not None and body.type not in (
         SlipType.ADJUST_UP,
         SlipType.ADJUST_DOWN,
@@ -329,6 +351,9 @@ async def create_slip(
                 ErrorCode.NOT_FOUND,
                 f"Không tìm thấy phiếu kho {body.adjusts_slip_id} của chi nhánh",
             )
+        if is_transfer:
+            await _check_receiver(conn, body.counterparty or "", branch_id)
+            await _ensure_on_sale(conn, lines, "TK-07")
         if body.type in OUT_TYPES:
             await _lock_and_check(conn, branch_id, lines)
         slip_id = await _insert_slip(
@@ -341,6 +366,7 @@ async def create_slip(
             created_by=user.employee_id,
             reason=body.reason,
             adjusts_slip_id=body.adjusts_slip_id,
+            counterparty=body.counterparty,
         )
     return await get_slip(conn, slip_id, user)
 
@@ -361,6 +387,89 @@ async def decide_slip(
         status = SlipStatus.CANCELLED if reject_reason is not None else SlipStatus.POSTED
         await _finalize(conn, slip_id, status, clock.now(), user.employee_id, reject_reason)
     return await get_slip(conn, slip_id, user)
+
+
+# ---------------------------------------------------------------- 4.6 Điều chuyển giữa chi nhánh
+
+
+async def _check_receiver(conn: asyncpg.Connection, receiver: str, branch_id: str) -> None:
+    """TK-07: chi nhánh nhận tồn tại, Hoạt động, khác chi nhánh lập. FOR SHARE để NV-04 (khóa
+    FOR UPDATE) không ngừng chi nhánh nhận giữa chừng."""
+    status = await conn.fetchval(
+        "SELECT status FROM branches WHERE branch_id = $1 FOR SHARE", receiver
+    )
+    if status is None:
+        raise AppError(ErrorCode.NOT_FOUND, f"Không tìm thấy chi nhánh {receiver}")
+    if receiver == branch_id:
+        raise AppError(
+            ErrorCode.RULE_VIOLATION, "Không điều chuyển tới chính chi nhánh mình", rule="TK-07"
+        )
+    if status != BranchStatus.ACTIVE:
+        raise AppError(
+            ErrorCode.RULE_VIOLATION,
+            f"Chi nhánh {receiver} Ngừng hoạt động, không nhận điều chuyển",
+            rule="TK-07",
+        )
+
+
+async def list_incoming_transfers(conn: asyncpg.Connection, user: CurrentUser) -> list[StockSlip]:
+    """Hàng đang vận chuyển tới chi nhánh mình: xuất điều chuyển Đã ghi nhận chưa có phiếu nhập."""
+    rows = await conn.fetch(
+        "SELECT * FROM stock_slips k WHERE k.type = $2 AND k.status = $3 AND k.counterparty = $1"
+        " AND NOT EXISTS (SELECT 1 FROM stock_slips n WHERE n.transfer_slip_id = k.slip_id)"
+        " ORDER BY k.finalized_at, k.slip_id",
+        user.branch_id,
+        SlipType.OUT_TRANSFER,
+        SlipStatus.POSTED,
+    )
+    return await _load(conn, rows)
+
+
+async def receive_transfer(conn: asyncpg.Connection, slip_id: str, user: CurrentUser) -> StockSlip:
+    """TK-07: chi nhánh nhận ghi nhận đúng các dòng của phiếu xuất, ghi nhận ngay, một lần."""
+    branch_id = user.branch_id or ""
+    duplicate = AppError(
+        ErrorCode.DUPLICATE, f"Phiếu điều chuyển {slip_id} đã được nhận", rule="TK-07"
+    )
+    async with conn.transaction():
+        # khóa phiếu xuất: hai lần nhận đồng thời đi lần lượt
+        source = await conn.fetchrow(
+            "SELECT * FROM stock_slips WHERE slip_id = $1 FOR UPDATE", slip_id
+        )
+        if (
+            source is None
+            or source["type"] != SlipType.OUT_TRANSFER
+            or source["counterparty"] != branch_id
+        ):
+            raise AppError(
+                ErrorCode.NOT_FOUND,
+                f"Không tìm thấy phiếu xuất điều chuyển {slip_id} gửi tới chi nhánh",
+            )
+        if source["status"] != SlipStatus.POSTED:
+            raise AppError(
+                ErrorCode.INVALID_STATE, f"Phiếu {slip_id} chưa được duyệt xuất", rule="TK-07"
+            )
+        if await conn.fetchval("SELECT 1 FROM stock_slips WHERE transfer_slip_id = $1", slip_id):
+            raise duplicate
+        items = await conn.fetch(
+            "SELECT product_id, quantity FROM stock_slip_items WHERE slip_id = $1", slip_id
+        )
+        try:
+            new_id = await _insert_slip(
+                conn,
+                branch_id,
+                SlipType.IN_TRANSFER,
+                SlipStatus.POSTED,
+                clock.now(),
+                [(row["product_id"], row["quantity"]) for row in items],
+                created_by=user.employee_id,
+                counterparty=source["branch_id"],
+                transfer_slip_id=slip_id,
+            )
+        except asyncpg.UniqueViolationError:  # stock_slips_one_per_transfer
+            raise duplicate from None
+        await _apply(conn, new_id, branch_id, SlipType.IN_TRANSFER)
+    return await get_slip(conn, new_id, user)
 
 
 # ---------------------------------------------------------------- 4.5 Mức tồn tối thiểu
@@ -424,15 +533,7 @@ async def create_replenishment(
     lines = _validate_lines(body.items)
     async with conn.transaction():
         await _ensure_products(conn, lines)
-        stopped = await conn.fetch(
-            "SELECT product_id FROM products WHERE product_id = ANY($1::text[]) AND status <> $2"
-            " ORDER BY product_id",
-            [product_id for product_id, _ in lines],
-            ProductStatus.ON_SALE,
-        )
-        if stopped:
-            names = ", ".join(row["product_id"] for row in stopped)
-            raise AppError(ErrorCode.RULE_VIOLATION, f"Sản phẩm {names} đã ngừng bán", rule="TK-06")
+        await _ensure_on_sale(conn, lines, "TK-06")
         row = await conn.fetchrow(
             "INSERT INTO replenishment_requests"
             " (branch_id, created_by, created_at, type, recipient)"

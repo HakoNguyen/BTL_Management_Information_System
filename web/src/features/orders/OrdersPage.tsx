@@ -1,14 +1,15 @@
 // 3.1 Lập, sửa, chốt, mở lại đơn; 3.4 hủy đơn chưa thanh toán (NVBH: đơn mình lập).
 // BH-01..BH-04 do API kiểm tra; tổng tiền, đơn giá chốt lấy từ API, giao diện không tự tính.
-import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Card, Form, Input, Popconfirm, Select, Space, Table, Tag } from "antd";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Alert, Button, Card, Form, Input, Popconfirm, Select, Space, Table, Tag, message } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { useAuth } from "../../auth";
 import { dateTime, money } from "../../format";
 import { ORDER_STATUS_LABEL, optionsOf } from "../../labels";
-import { FormModal, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
-import { CustomerField, ItemsField } from "./ItemsField";
+import { inDateRange, type DateRange } from "../../dateRange";
+import { DateRangeFilter, FormModal, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
+import { CustomerField, ItemsField, type OrderForm } from "./ItemsField";
 import { stockProblems } from "./stockProblems";
 
 type Order = Schemas["Order"];
@@ -21,6 +22,7 @@ const WALK_IN = "KHLE";
 export function OrdersPage() {
   const { user } = useAuth();
   const [status, setStatus] = useState<Order["status"]>();
+  const [range, setRange] = useState<DateRange>(null);
   const orders = useQuery({
     queryKey: ["orders", status],
     queryFn: () => unwrap(client.GET("/orders", { params: { query: { status } } })),
@@ -39,6 +41,28 @@ export function OrdersPage() {
     (body: Schemas["OrderCreate"]) => unwrap(client.POST("/orders", { body })),
     KEYS,
   );
+  const queryClient = useQueryClient();
+  const saveCustomer = useMutation({
+    mutationFn: async (body: Schemas["CustomerCreate"]) => {
+      const call = client.POST("/customers", { body });
+      const customer = await unwrap(call);
+      // 200 = số đã có hồ sơ (2.1): API trả hồ sơ có sẵn, đơn lập cho khách đó
+      if ((await call).response.status === 200)
+        message.info(`Số đã có hồ sơ: ${customer.full_name} (${customer.customer_id}), đơn lập cho khách này`, 6);
+      return customer;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["customers"] }),
+    onError: (error) => message.error(error.message, 6),
+  });
+  // Khách mới: ghi nhận 2.1 rồi lập đơn 3.1, hai lệnh riêng; lập đơn lỗi thì hồ sơ khách vẫn còn
+  const createOrder = async ({ mode, customer_id, new_customer, items }: OrderForm) => {
+    let customerId = mode === "SAVED" ? customer_id : WALK_IN;
+    if (mode === "NEW" && new_customer) {
+      const body = { ...new_customer, address: new_customer.address || undefined };
+      customerId = (await saveCustomer.mutateAsync(body)).customer_id;
+    }
+    return create.mutateAsync({ customer_id: customerId, items });
+  };
   const changeItems = useWrite(
     (body: Schemas["OrderItemsChange"]) =>
       unwrap(client.PUT("/orders/{order_id}/items", { ...orderPath(id), body })),
@@ -74,6 +98,7 @@ export function OrdersPage() {
       title="Đơn hàng"
       extra={
         <Space wrap>
+          <DateRangeFilter onChange={setRange} />
           <Select
             allowClear
             placeholder="Mọi trạng thái"
@@ -106,7 +131,7 @@ export function OrdersPage() {
       <Table<Order>
         rowKey="order_id"
         loading={orders.isPending}
-        dataSource={orders.data}
+        dataSource={orders.data?.filter((order) => inDateRange(order.created_at, range))}
         scroll={{ x: true }}
         expandable={{
           expandedRowRender: (order) => (
@@ -194,11 +219,11 @@ export function OrdersPage() {
       />
 
       {dialog?.kind === "create" && (
-        <FormModal<Schemas["OrderCreate"]>
+        <FormModal<OrderForm>
           title="Lập đơn"
-          initialValues={{ customer_id: WALK_IN, items: [{} as Schemas["OrderItemInput"]] }}
+          initialValues={{ mode: "WALK_IN", items: [{} as Schemas["OrderItemInput"]] }}
           onClose={close}
-          onSubmit={create.mutateAsync}
+          onSubmit={createOrder}
         >
           <CustomerField />
           <ItemsField />

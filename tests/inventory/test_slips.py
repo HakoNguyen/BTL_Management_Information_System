@@ -107,6 +107,7 @@ async def test_inbound_posts_immediately(client: httpx.AsyncClient, kho: dict[st
         "order_id": None,
         "return_id": None,
         "adjusts_slip_id": None,
+        "transfer_slip_id": None,
         "approved_by": None,
         "decision_reason": None,
         "finalized_at": ISO_NOW,

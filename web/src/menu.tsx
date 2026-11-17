@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Role } from "./api/client";
 import { CustomersPage } from "./features/customers/CustomersPage";
 import { HomePage } from "./features/home/HomePage";
+import { IncomingTransfersPage } from "./features/inventory/IncomingTransfersPage";
 import { ReplenishmentPage } from "./features/inventory/ReplenishmentPage";
 import { StockPage } from "./features/inventory/StockPage";
 import { StockSlipsPage } from "./features/inventory/StockSlipsPage";
@@ -48,6 +49,7 @@ export const MENU: MenuItem[] = [
   { path: "/invoices", label: "Hóa đơn", roles: ["CASHIER"], element: <InvoicesPage /> },
   { path: "/stock", label: "Tồn kho chi nhánh", roles: ["MANAGER", "WAREHOUSE"], element: <StockPage /> },
   { path: "/stock-slips", label: "Phiếu kho", roles: ["MANAGER", "WAREHOUSE"], element: <StockSlipsPage /> },
+  { path: "/incoming-transfers", label: "Hàng điều chuyển đến", roles: ["MANAGER", "WAREHOUSE"], element: <IncomingTransfersPage /> },
   { path: "/replenishment-requests", label: "Yêu cầu bổ sung", roles: ["MANAGER", "WAREHOUSE"], element: <ReplenishmentPage /> },
   { path: "/reports/low-stock", label: "Cảnh báo tồn", roles: ["MANAGER", "WAREHOUSE"], element: <LowStockReportPage /> },
   { path: "/refunds", label: "Hoàn tiền", roles: ["CASHIER"], element: <RefundsPage /> },

@@ -21,20 +21,20 @@ Một chuỗi bán lẻ hàng tiêu dùng gồm trụ sở, nhiều chi nhánh v
 
 ### 1.3 Phạm vi trong bài
 
-Hệ thống gồm 6 nhóm và 27 chức năng con, thống nhất với BFD_Nhom3_v2_1. Mã chức năng chỉ thể hiện phân cấp, không quy định thứ tự thực hiện.
+Hệ thống gồm 6 nhóm và 28 chức năng con, thống nhất với BFD_Nhom3_v2_1 (bổ sung 4.6 ngày 17/11/2026). Mã chức năng chỉ thể hiện phân cấp, không quy định thứ tự thực hiện.
 
 | Nhóm chức năng | Chức năng con |
 | --- | --- |
 | 1. Quản lý sản phẩm | 1.1 Thêm mới và cập nhật thông tin sản phẩm · 1.2 Phân loại sản phẩm · 1.3 Thiết lập và cập nhật giá bán · 1.4 Cập nhật trạng thái kinh doanh |
 | 2. Quản lý khách hàng | 2.1 Ghi nhận khách hàng mới · 2.2 Cập nhật thông tin khách hàng · 2.3 Tra cứu khách hàng · 2.4 Tra cứu lịch sử mua và trả hàng |
 | 3. Quản lý bán hàng và thanh toán | 3.1 Lập và chốt đơn bán hàng · 3.2 Ghi nhận thu tiền bán hàng · 3.3 Xuất hóa đơn bán hàng · 3.4 Xử lý hủy đơn, trả hàng và hoàn tiền · 3.5 Quản lý ca thu ngân và đối soát |
-| 4. Quản lý tồn kho phục vụ bán hàng | 4.1 Tra cứu tồn theo chi nhánh · 4.2 Ghi nhận nhập hàng · 4.3 Ghi nhận xuất hàng · 4.4 Lập yêu cầu nhập, điều chuyển · 4.5 Thiết lập mức tồn tối thiểu |
+| 4. Quản lý tồn kho phục vụ bán hàng | 4.1 Tra cứu tồn theo chi nhánh · 4.2 Ghi nhận nhập hàng · 4.3 Ghi nhận xuất hàng · 4.4 Lập yêu cầu nhập, điều chuyển · 4.5 Thiết lập mức tồn tối thiểu · 4.6 Điều chuyển hàng giữa chi nhánh |
 | 5. Báo cáo và hỗ trợ quản lý | 5.1 Tổng hợp doanh thu · 5.2 Thống kê sản phẩm bán · 5.3 Lập báo cáo tồn kho · 5.4 Cảnh báo hàng dưới mức tồn tối thiểu · 5.5 Báo cáo doanh số nhân viên |
 | 6. Quản lý nhân viên và chi nhánh | 6.1 Cập nhật hồ sơ nhân viên · 6.2 Phân công chi nhánh và vai trò · 6.3 Cấp và khóa tài khoản · 6.4 Cập nhật thông tin chi nhánh |
 
 ### 1.4 Ngoài phạm vi
 
-Quản lý nội bộ kho tổng; mua hàng, giá vốn, công nợ và danh mục nhà cung cấp; vận chuyển, giao nhận; khuyến mại, giảm giá, tích điểm; bán online, đặt cọc, giữ hàng theo yêu cầu khách; hóa đơn điện tử và kế toán thuế; lợi nhuận; chấm công, tiền lương, chỉ tiêu kế hoạch; bảo hành; điều chuyển trực tiếp giữa hai chi nhánh; quy trình kiểm kê định kỳ (chỉ ghi nhận kết quả điều chỉnh, xem TK-04).
+Quản lý nội bộ kho tổng; mua hàng, giá vốn, công nợ và danh mục nhà cung cấp; vận chuyển, giao nhận; khuyến mại, giảm giá, tích điểm; bán online, đặt cọc, giữ hàng theo yêu cầu khách; hóa đơn điện tử và kế toán thuế; lợi nhuận; chấm công, tiền lương, chỉ tiêu kế hoạch; bảo hành; quy trình kiểm kê định kỳ (chỉ ghi nhận kết quả điều chỉnh, xem TK-04).
 
 ### 1.5 Giả định
 
@@ -47,10 +47,10 @@ Mỗi giả định thu hẹp phạm vi có chủ đích. Mọi quy tắc phía 
 | G-03 | Mỗi đơn được thanh toán một lần, đủ tổng tiền, bằng một phương thức: Tiền mặt, Chuyển khoản hoặc Thẻ. | Là trường hợp phổ biến; thanh toán kết hợp nhiều phương thức là hướng mở rộng. |
 | G-04 | Thanh toán điện tử được khởi tạo từ phần mềm qua máy POS hoặc mã QR động gắn với đúng một giao dịch; ngân hàng/cổng thanh toán trả kết quả kèm mã tham chiếu. | Khách không thể trả nhiều lần cho cùng một giao dịch; phần mềm chỉ nhận kết quả, không xử lý tiền. |
 | G-05 | Hóa đơn là chứng từ bán lẻ in cho khách, ghi tổng tiền đã gồm VAT, không tách tiền thuế. | Hóa đơn điện tử và kê khai thuế ngoài phạm vi. |
-| G-06 | Khách hàng dùng chung toàn chuỗi; hàng được trả tại đúng chi nhánh đã bán, trong 7 ngày kể từ khi đơn Hoàn tất. | Trả chéo chi nhánh cần điều chuyển hàng và tiền, ngoài phạm vi. |
+| G-06 | Khách hàng dùng chung toàn chuỗi; hàng được trả tại đúng chi nhánh đã bán, trong 7 ngày kể từ khi đơn Hoàn tất. | Trả chéo chi nhánh cần chuyển chứng từ và tiền hoàn giữa chi nhánh, ngoài phạm vi. |
 | G-07 | Số lượng hàng là số nguyên theo đơn vị tính; tiền tính bằng VND, số nguyên. | Không bán hàng cân ký. |
 | G-08 | "Cuối ngày" là giờ đóng cửa của từng chi nhánh, lưu trong thông tin chi nhánh. | Các chi nhánh có thể đóng cửa giờ khác nhau. |
-| G-09 | Mỗi đợt giao hàng đến chi nhánh có phiếu giao riêng của kho tổng hoặc nhà cung cấp; hàng chỉ được ghi nhập sau khi kiểm nhận thực tế. | Phần mềm không theo dõi vận chuyển hay giao một phần. |
+| G-09 | Mỗi đợt giao hàng đến chi nhánh có phiếu giao riêng của kho tổng, nhà cung cấp, hoặc phiếu xuất điều chuyển của chi nhánh gửi; hàng chỉ được ghi nhập sau khi kiểm nhận thực tế. | Phần mềm không theo dõi vận chuyển hay giao một phần. |
 
 ## 2. Tác nhân, phân quyền và nguyên tắc kiểm soát
 
@@ -64,7 +64,7 @@ Hệ thống có 9 tác nhân: 5 vai trò nội bộ trực tiếp dùng phần 
 | Quản lý cửa hàng (QL) | Nội bộ | Điều hành một chi nhánh: duyệt trả hàng, duyệt phiếu kho, xác nhận chốt ca, đặt ngưỡng tồn, xem báo cáo chi nhánh. |
 | Nhân viên bán hàng (NVBH) | Nội bộ | Tư vấn, lập và chốt đơn, ghi nhận khách hàng, lập phiếu trả. |
 | Thu ngân | Nội bộ | Mở và đóng ca, thu tiền, in hóa đơn, thực hiện hoàn tiền. |
-| Nhân viên kho (NV kho) | Nội bộ | Kiểm nhận và ghi nhập hàng, lập phiếu xuất khác và điều chỉnh, lập yêu cầu bổ sung. |
+| Nhân viên kho (NV kho) | Nội bộ | Kiểm nhận và ghi nhập hàng, lập phiếu xuất khác và điều chỉnh, lập yêu cầu bổ sung, xuất điều chuyển và ghi nhận hàng điều chuyển đến. |
 | Khách hàng | Bên ngoài | Cung cấp thông tin cá nhân, yêu cầu mua, thông tin thanh toán, yêu cầu trả; nhận hóa đơn, phiếu trả, lịch sử mua. |
 | Ngân hàng/Cổng thanh toán | Bên ngoài | Nhận yêu cầu thanh toán/hoàn tiền điện tử; trả kết quả kèm mã tham chiếu. |
 | Kho tổng | Bên ngoài | Gửi phiếu giao hàng điều chuyển; nhận yêu cầu bổ sung và thông tin hàng trả về kho tổng. |
@@ -92,15 +92,16 @@ Quyền của QL, NVBH, Thu ngân, NV kho chỉ áp dụng trong chi nhánh hi�
 | 4.1 Tra cứu tồn (phục vụ 3.1 khi chốt đơn) | Qua 5.3 | Qua 4.5, 5.3 | Qua 3.1 khi lập đơn | — | Qua 4.4, 5.3 |
 | 4.2 Ghi nhập từ phiếu giao | — | — | — | — | Có |
 | 4.2/4.3 Lập phiếu xuất khác, điều chỉnh | — | — | — | — | Có |
-| 4.2/4.3 Duyệt phiếu xuất khác, điều chỉnh | — | Có | — | — | — |
+| 4.2/4.3/4.6 Duyệt phiếu xuất khác, điều chỉnh, xuất điều chuyển | — | Có | — | — | — |
 | 4.4 Lập yêu cầu bổ sung | — | — | — | — | Có |
+| 4.6 Lập phiếu xuất điều chuyển; ghi nhận nhập điều chuyển | — | — | — | — | Có |
 | 4.5 Đặt mức tồn tối thiểu | — | Có | — | — | — |
 | 5.1, 5.2 Doanh thu, sản phẩm bán | Toàn chuỗi | Chi nhánh mình | — | — | — |
 | 5.3, 5.4 Tồn kho, cảnh báo | Toàn chuỗi (qua 5.3) | Chi nhánh mình | — | — | Chi nhánh mình |
 | 5.5 Doanh số nhân viên | Toàn chuỗi | Chi nhánh mình | Của mình | — | — |
 | 6.1–6.4 Nhân viên, tài khoản, chi nhánh | Có | — | — | — | — |
 
-Thu ngân xem kết quả ca của mình qua 3.5, không qua nhóm 5. Mỗi chi nhánh có ít nhất một NV kho: NV kho ghi nhập, lập phiếu xuất khác/điều chỉnh và yêu cầu bổ sung; QL chỉ đặt ngưỡng và duyệt phiếu kho, nên không bao giờ tự duyệt phiếu của mình. Hồ sơ khách hàng do NVBH ghi nhận và tra cứu khi lập đơn; thu ngân và QL xem thông tin khách qua đơn hàng (3.0), không thao tác trực tiếp ở nhóm 2.
+Thu ngân xem kết quả ca của mình qua 3.5, không qua nhóm 5. Mỗi chi nhánh có ít nhất một NV kho: NV kho ghi nhập, lập phiếu xuất khác/điều chỉnh, phiếu điều chuyển và yêu cầu bổ sung; QL chỉ đặt ngưỡng và duyệt phiếu kho, nên không bao giờ tự duyệt phiếu của mình. Hồ sơ khách hàng do NVBH ghi nhận và tra cứu khi lập đơn; thu ngân và QL xem thông tin khách qua đơn hàng (3.0), không thao tác trực tiếp ở nhóm 2.
 
 ### 2.3 Nguyên tắc kiểm soát
 
@@ -152,12 +153,14 @@ Năm luồng dưới đây bao trọn nghiệp vụ trong phạm vi; mỗi bư�
 - QL nhận tiền, kiểm tra kết quả đối soát và xác nhận; ca chuyển Đã chốt. Ca còn giao dịch điện tử Chờ kết quả thì chưa chốt được (CA-03).
 - Thu ngân vắng đột xuất hoặc bị khóa tài khoản khi ca Đang mở: QL kiểm đếm cùng một nhân viên làm chứng, đóng ca thay; trụ sở xác nhận chốt (CA-04).
 
-### P5. Nhập hàng, bổ sung và điều chỉnh tồn
+### P5. Nhập hàng, bổ sung, điều chuyển và điều chỉnh tồn
 
 - QL đặt mức tồn tối thiểu cho sản phẩm kinh doanh tại chi nhánh (4.5).
 - Hằng ngày hệ thống cảnh báo sản phẩm có tồn dưới ngưỡng cho QL và NV kho (5.4).
 - NV kho lập yêu cầu bổ sung gửi kho tổng hoặc NCC giao thẳng (4.4). Yêu cầu không làm tăng tồn.
 - Hàng đến kèm phiếu giao; NV kho kiểm nhận và ghi phiếu nhập theo số lượng thực nhận; tồn tăng (4.2, TK-02).
+- Chi nhánh thừa hàng: NV kho lập phiếu xuất điều chuyển gửi chi nhánh khác, Chờ duyệt và giữ hàng; QL duyệt thì tồn chi nhánh gửi giảm, hàng đang vận chuyển (4.6, TK-07).
+- Hàng điều chuyển đến: NV kho chi nhánh nhận ghi nhận đúng số đã xuất; tồn chi nhánh nhận tăng. Sai lệch phát hiện khi kiểm đếm xử lý bằng phiếu điều chỉnh (4.6, TK-04, TK-07).
 - Phát hiện sai lệch (nhập nhầm, hàng hỏng, mất) hoặc cần trả hàng về kho tổng: NV kho lập phiếu điều chỉnh hoặc xuất khác Chờ duyệt; QL duyệt thì tồn mới thay đổi (4.2/4.3, TK-03, TK-04).
 
 ## 4. Đặc tả chức năng và quy tắc nghiệp vụ
@@ -270,6 +273,8 @@ Mọi thay đổi tồn đều đi qua một phiếu kho, kể cả xuất bán 
 | Xuất hủy | 4.3 | NV kho, có lý do (hỏng, hết hạn, mất) | Có | Giữ khi tạo, giảm khi duyệt |
 | Xuất trả kho tổng | 4.3 | NV kho, có lý do | Có | Giữ khi tạo, giảm khi duyệt |
 | Điều chỉnh giảm | 4.3 | NV kho, có lý do | Có | Giữ khi tạo, giảm khi duyệt |
+| Xuất điều chuyển | 4.6 | NV kho, có lý do, bên nhận là chi nhánh khác | Có | Giữ khi tạo, giảm khi duyệt |
+| Nhập điều chuyển | 4.6 | NV kho chi nhánh nhận, từ phiếu xuất điều chuyển Đã ghi nhận | Không | Tăng ngay |
 
 | Mã | Đầu vào | Xử lý chính | Đầu ra | Kho |
 | --- | --- | --- | --- | --- |
@@ -278,15 +283,17 @@ Mọi thay đổi tồn đều đi qua một phiếu kho, kể cả xuất bán 
 | 4.3 Ghi nhận xuất hàng | 3.2: yêu cầu giữ hàng, xác nhận xuất, hủy giữ (mã đơn, dòng hàng); NV kho: đề nghị xuất hủy, xuất trả kho tổng, điều chỉnh giảm; QL: quyết định duyệt | Lập phiếu xuất Chờ xử lý khi đủ tồn khả dụng; ghi nhận hoặc hủy theo kết quả thu/duyệt (TK-03, TK-04); cập nhật tồn | 3.2: kết quả giữ/xuất; NV kho: kết quả; QL: phiếu xuất chờ duyệt; Kho tổng: thông tin hàng xuất trả | Đọc/ghi D5 |
 | 4.4 Lập yêu cầu nhập, điều chuyển | NV kho: đề nghị bổ sung (nơi nhận, sản phẩm, số lượng) | Hiển thị tồn và ngưỡng hiện tại; kiểm tra sản phẩm Đang bán, số lượng > 0; lưu yêu cầu (TK-06) | Kho tổng hoặc NCC: yêu cầu bổ sung; NV kho: kết quả, tồn và ngưỡng hiện tại | Đọc D1, D6; đọc/ghi D5 |
 | 4.5 Thiết lập mức tồn tối thiểu | QL: sản phẩm, mức tối thiểu | Kiểm tra số nguyên ≥ 0 hoặc để trống; cập nhật ngưỡng tại chi nhánh của QL (TK-05) | QL: tồn và ngưỡng hiện tại, kết quả | Đọc D1; đọc/ghi D5 |
+| 4.6 Điều chuyển hàng giữa chi nhánh | NV kho chi nhánh gửi: đề nghị xuất điều chuyển (chi nhánh nhận, sản phẩm, số lượng, lý do); QL: quyết định duyệt; NV kho chi nhánh nhận: xác nhận đã nhận hàng | Lập phiếu xuất điều chuyển Chờ xử lý khi đủ tồn khả dụng, ghi nhận hoặc hủy theo duyệt; lập phiếu nhập điều chuyển theo đúng dòng của phiếu xuất (TK-07); cập nhật tồn hai chi nhánh | NV kho: kết quả, hàng điều chuyển đang đến; QL: phiếu xuất điều chuyển chờ duyệt | Đọc D1, D6; đọc/ghi D5 |
 
 | Mã | Quy tắc |
 | --- | --- |
 | TK-01 | Tồn được quản lý theo cặp sản phẩm–chi nhánh, số nguyên ≥ 0, chỉ thay đổi khi một phiếu kho chuyển Đã ghi nhận; không sửa số tồn trực tiếp. Cặp chưa có bản ghi được hiểu là tồn 0, chưa đặt ngưỡng. Tồn khả dụng = tồn − Σ số lượng trên các phiếu xuất Chờ xử lý của cặp đó (dữ liệu dẫn xuất). |
 | TK-02 | Phiếu nhập từ kho tổng/NCC ghi bên giao, số phiếu giao, sản phẩm và số lượng thực nhận > 0, ghi nhận ngay khi lưu. Bộ (bên giao, số phiếu giao, chi nhánh) không được ghi hai lần. Phiếu nhập hàng trả được tạo tự động, tối đa một phiếu cho mỗi phiếu trả. Chi nhánh Ngừng hoạt động không nhập hàng. |
-| TK-03 | Phiếu xuất chỉ được lập khi số lượng từng dòng không vượt tồn khả dụng; khi lập, phiếu ở Chờ xử lý và giữ hàng. Xuất bán: Đã ghi nhận khi giao dịch thu Thành công, Đã hủy khi Thất bại; mỗi đơn có tối đa một phiếu xuất bán chưa bị hủy. Xuất hủy, xuất trả kho tổng: NV kho lập, QL duyệt thì Đã ghi nhận, từ chối thì Đã hủy. Phiếu chờ duyệt giữ nguyên (vẫn giữ hàng) cho đến khi QL quyết định; phiếu kho không có duyệt thay. |
+| TK-03 | Phiếu xuất chỉ được lập khi số lượng từng dòng không vượt tồn khả dụng; khi lập, phiếu ở Chờ xử lý và giữ hàng. Xuất bán: Đã ghi nhận khi giao dịch thu Thành công, Đã hủy khi Thất bại; mỗi đơn có tối đa một phiếu xuất bán chưa bị hủy. Xuất hủy, xuất trả kho tổng, xuất điều chuyển: NV kho lập, QL duyệt thì Đã ghi nhận, từ chối thì Đã hủy. Phiếu chờ duyệt giữ nguyên (vẫn giữ hàng) cho đến khi QL quyết định; phiếu kho không có duyệt thay. |
 | TK-04 | Sai lệch giữa tồn và thực tế (nhập nhầm số lượng, phát hiện khi kiểm đếm) chỉ được sửa bằng phiếu Điều chỉnh tăng (4.2) hoặc Điều chỉnh giảm (4.3), bắt buộc lý do, tham chiếu phiếu bị sai nếu có, do NV kho lập và QL duyệt như TK-03. Không sửa, xóa phiếu đã ghi nhận. |
 | TK-05 | QL đặt mức tồn tối thiểu nguyên ≥ 0 cho sản phẩm tại chi nhánh mình; để trống là Chưa thiết lập (khác với 0). Đổi ngưỡng không đổi tồn. "Dưới mức tồn tối thiểu" nghĩa là tồn < ngưỡng. |
 | TK-06 | Yêu cầu bổ sung gửi kho tổng (điều chuyển) hoặc một NCC giao thẳng (nhập), gồm các dòng sản phẩm Đang bán với số lượng đề nghị > 0, mỗi sản phẩm một dòng. Yêu cầu được lưu như đã gửi, không làm tăng tồn và không theo dõi giao nhận; hàng về được ghi qua TK-02. Điều khoản mua với NCC thuộc trụ sở, ngoài phạm vi. |
+| TK-07 | Xuất điều chuyển gửi một chi nhánh Hoạt động khác chi nhánh lập, gồm sản phẩm Đang bán với số lượng > 0, có lý do; lập, giữ hàng và duyệt như TK-03. Khi phiếu xuất Đã ghi nhận, hàng ở trạng thái đang vận chuyển, không thuộc tồn chi nhánh nào. NV kho chi nhánh nhận ghi nhận phiếu Nhập điều chuyển đúng các dòng của phiếu xuất, ghi nhận ngay khi lưu, mỗi phiếu xuất một lần; sai lệch phát hiện khi kiểm đếm sửa bằng TK-04. Không có duyệt thay. |
 
 ### 4.5 Nhóm 5 – Báo cáo và hỗ trợ quản lý (chỉ đọc D1, D3, D4, D5, D6)
 
@@ -326,7 +333,7 @@ Ba thời điểm không được trộn lẫn: doanh thu bán ghi theo thời �
 | NV-01 | Mã nhân viên duy nhất. Mỗi nhân viên có đúng một vai trò; nhân viên cửa hàng thuộc đúng một chi nhánh hiện tại, nhân viên trụ sở không thuộc chi nhánh. Không xóa nhân viên đã phát sinh nghiệp vụ. |
 | NV-02 | Đổi vai trò hoặc chi nhánh bị từ chối khi nhân viên còn ca chưa chốt, đơn Đang lập/Chờ thanh toán do mình lập, hoặc phiếu trả/phiếu kho chờ xử lý do mình lập. Chứng từ cũ giữ chi nhánh và người lập gốc (K-05). Chi nhánh thiếu thu ngân tạm thời: trụ sở phân công một nhân viên sang vai trò Thu ngân qua 6.2. |
 | NV-03 | Tên đăng nhập duy nhất, không tái sử dụng cho người khác. Tài khoản Hoạt động hoặc Bị khóa, độc lập với trạng thái nhân viên; khóa không xóa dữ liệu. Nhân viên chỉ được chuyển Đã nghỉ khi tài khoản đã Bị khóa và không còn ca chưa chốt; ca Đang mở của thu ngân bị khóa được đóng thay theo CA-04. |
-| NV-04 | Mã chi nhánh duy nhất, không đổi; giờ đóng cửa bắt buộc (G-08); không xóa chi nhánh. Chi nhánh chỉ chuyển Ngừng hoạt động khi: tồn mọi sản phẩm bằng 0 (hàng còn lại đã xuất trả kho tổng), không còn ca chưa chốt, đơn Đang lập/Chờ thanh toán, phiếu chờ xử lý, phiếu trả Đã duyệt chưa hoàn xong, và đã quá 7 ngày kể từ đơn hoàn tất gần nhất. Chi nhánh ngừng không lập đơn, mở ca, nhập hàng; dữ liệu cũ vẫn có trong báo cáo. |
+| NV-04 | Mã chi nhánh duy nhất, không đổi; giờ đóng cửa bắt buộc (G-08); không xóa chi nhánh. Chi nhánh chỉ chuyển Ngừng hoạt động khi: tồn mọi sản phẩm bằng 0 (hàng còn lại đã xuất trả kho tổng), không còn ca chưa chốt, đơn Đang lập/Chờ thanh toán, phiếu chờ xử lý, phiếu trả Đã duyệt chưa hoàn xong, hàng điều chuyển đang chuyển đến, và đã quá 7 ngày kể từ đơn hoàn tất gần nhất. Chi nhánh ngừng không lập đơn, mở ca, nhập hàng và không là bên nhận điều chuyển; dữ liệu cũ vẫn có trong báo cáo. |
 
 ## 5. Dữ liệu lưu trữ
 
@@ -347,9 +354,9 @@ Hệ thống có 6 kho DFD và 18 bảng dữ liệu (trên ERD là 13 thực th
 | D4 Thanh toán, hóa đơn và ca | GIAO DỊCH | Mã GD (PK), mã đơn, mã phiếu trả (chỉ với Hoàn), mã ca, loại, phương thức, số tiền, trạng thái, thời điểm tạo, thời điểm có kết quả, mã tham chiếu, mã NV duyệt hoàn tiền mặt thay thế, lý do hoàn tiền mặt | 3.2 giao dịch Thu; 3.4 giao dịch Hoàn |
 | D4 | HÓA ĐƠN | Số hóa đơn (PK), mã đơn (duy nhất), thời điểm phát hành, số lần in | 3.3 |
 | D4 | CA THU NGÂN | Mã ca (PK), mã CN, mã thu ngân, thời điểm mở, đóng, chốt, tiền đầu ca, tiền kiểm đếm, lý do chênh lệch, trạng thái, mã NV đóng thay, mã NV làm chứng, lý do đóng thay, mã NV xác nhận chốt | 3.5 |
-| D5 Tồn kho | TỒN KHO | Mã CN + mã SP (PK), số lượng tồn, mức tồn tối thiểu (có thể rỗng) | 4.2, 4.3 số lượng; 4.5 mức tối thiểu |
-| D5 | PHIẾU KHO | Mã phiếu kho (PK), mã CN, loại phiếu, trạng thái, thời điểm lập, mã NV lập (rỗng nếu tự động), lý do, bên giao/bên nhận, số phiếu giao, mã đơn (xuất bán), mã phiếu trả (nhập hàng trả), mã phiếu kho bị điều chỉnh, mã NV duyệt, thời điểm ghi nhận hoặc hủy | 4.2 phiếu nhập; 4.3 phiếu xuất |
-| D5 | CHI TIẾT PHIẾU KHO | Mã phiếu kho + mã SP (PK), số lượng | 4.2, 4.3 |
+| D5 Tồn kho | TỒN KHO | Mã CN + mã SP (PK), số lượng tồn, mức tồn tối thiểu (có thể rỗng) | 4.2, 4.3, 4.6 số lượng; 4.5 mức tối thiểu |
+| D5 | PHIẾU KHO | Mã phiếu kho (PK), mã CN, loại phiếu, trạng thái, thời điểm lập, mã NV lập (rỗng nếu tự động), lý do, bên giao/bên nhận, số phiếu giao, mã đơn (xuất bán), mã phiếu trả (nhập hàng trả), mã phiếu kho bị điều chỉnh, mã phiếu xuất điều chuyển (nhập điều chuyển), mã NV duyệt, thời điểm ghi nhận hoặc hủy | 4.2 phiếu nhập; 4.3 phiếu xuất; 4.6 phiếu điều chuyển |
+| D5 | CHI TIẾT PHIẾU KHO | Mã phiếu kho + mã SP (PK), số lượng | 4.2, 4.3, 4.6 |
 | D5 | YÊU CẦU BỔ SUNG | Mã yêu cầu (PK), mã CN, mã NV lập, thời điểm lập, loại yêu cầu (Điều chuyển/Nhập NCC), nơi nhận | 4.4 |
 | D5 | CHI TIẾT YÊU CẦU | Mã yêu cầu + mã SP (PK), số lượng đề nghị | 4.4 |
 | D6 Nhân viên và chi nhánh | CHI NHÁNH | Mã CN (PK), tên CN, địa chỉ, điện thoại, giờ đóng cửa, trạng thái | 6.4 |
@@ -380,6 +387,7 @@ Trong mô hình Chen, CHI TIẾT ĐƠN, CHI TIẾT PHIẾU TRẢ, CHI TIẾT PHI
 | PHIẾU KHO – SẢN PHẨM qua CHI TIẾT PHIẾU KHO | N – M | Phiếu có 1..N dòng |
 | ĐƠN HÀNG – PHIẾU KHO (xuất bán) | 0..1 – 0..N | Tối đa 1 phiếu chưa hủy mỗi đơn |
 | PHIẾU TRẢ – PHIẾU KHO (nhập hàng trả) | 0..1 – 0..1 | Chỉ khi có hàng tốt |
+| PHIẾU KHO (xuất điều chuyển) – PHIẾU KHO (nhập điều chuyển) | 0..1 – 0..1 | Chỉ phiếu xuất Đã ghi nhận; nhận đúng một lần |
 | CHI NHÁNH – YÊU CẦU BỔ SUNG; YÊU CẦU – SẢN PHẨM qua CHI TIẾT YÊU CẦU | 1 – 0..N; N – M |  |
 | CHI NHÁNH – NHÂN VIÊN | 0..1 – 0..N | Nhân viên trụ sở không có chi nhánh |
 
@@ -392,6 +400,7 @@ Mã NV và mã CN trên đơn, phiếu, ca là giá trị tại thời điểm p
 - Ca của giao dịch cùng chi nhánh với đơn. Mỗi thu ngân tối đa một ca Đang mở.
 - Tổng lượng trả đã duyệt của một sản phẩm ≤ lượng mua trên chi tiết đơn.
 - Phiếu kho Xuất bán bắt buộc có mã đơn; Nhập hàng trả bắt buộc có mã phiếu trả; Nhập kho tổng/NCC bắt buộc có bên giao và số phiếu giao, duy nhất theo chi nhánh.
+- Xuất điều chuyển bắt buộc có bên nhận; Nhập điều chuyển bắt buộc có mã phiếu xuất điều chuyển, duy nhất (TK-07).
 - Số lượng tồn ≥ 0; mọi số lượng và số tiền trên chứng từ > 0 (trừ lượng tốt/lỗi từng cột ≥ 0).
 
 ### 5.4 Tập trạng thái
@@ -417,12 +426,13 @@ Mã NV và mã CN trên đơn, phiếu, ca là giá trị tại thời điểm p
 | Giá trị phiếu trả | Theo TH-04 |
 | Tình trạng hoàn tiền của phiếu | Đã hoàn nếu có giao dịch Hoàn Thành công; Đang chờ kết quả nếu có giao dịch Chờ kết quả; còn lại Chưa hoàn |
 | Tồn khả dụng | Theo TK-01 |
+| Hàng đang vận chuyển | Phiếu xuất điều chuyển Đã ghi nhận chưa có phiếu nhập điều chuyển (TK-07) |
 | Tiền mặt kỳ vọng, chênh lệch ca | Theo CA-02 |
 | Các chỉ tiêu doanh thu | Theo DT-01 đến DT-05 |
 
 ### 5.6 Sơ đồ thực thể – liên kết (ERD)
 
-ERD vẽ ở mức khái niệm theo mô hình thực thể – liên kết: 13 thực thể, 34 mối quan hệ, trong đó 5 mối quan hệ nhiều–nhiều có thuộc tính (gồm, trả, lưu kho, chứa, đề nghị) thay cho 5 bảng chi tiết của mục 5.1. Quy ước:
+ERD vẽ ở mức khái niệm theo mô hình thực thể – liên kết: 13 thực thể, 35 mối quan hệ, trong đó 5 mối quan hệ nhiều–nhiều có thuộc tính (gồm, trả, lưu kho, chứa, đề nghị) thay cho 5 bảng chi tiết của mục 5.1. Quy ước:
 
 - Thực thể là hình chữ nhật liệt kê thuộc tính bên trong; thuộc tính khóa gạch chân. LỊCH SỬ GIÁ là thực thể yếu (khung đôi), định danh qua mối quan hệ định danh có giá (hình thoi đôi) với SẢN PHẨM; khóa bộ phận "thời điểm hiệu lực" gạch đứt.
 - Mối quan hệ là hình thoi, tên là động từ và không trùng nhau. Thuộc tính của mối quan hệ vẽ bằng hình elip.
@@ -436,7 +446,7 @@ ERD vẽ ở mức khái niệm theo mô hình thực thể – liên kết: 13 
 
 ### 5.7 Lược đồ quan hệ (chuyển từ ERD)
 
-Quy tắc chuyển: quan hệ 1–N đặt khóa ngoại ở phía N; quan hệ 1–1 (xuất, nhập trả) đặt khóa ngoại ở phía HÓA ĐƠN / PHIẾU KHO kèm ràng buộc duy nhất; quan hệ N–M thành bảng riêng có khóa ghép; thực thể yếu nhận khóa của thực thể chủ vào khóa ghép. Các vai trò khác nhau của NHÂN VIÊN thành các khóa ngoại khác tên cùng trỏ về NHÂN VIÊN.
+Quy tắc chuyển: quan hệ 1–N đặt khóa ngoại ở phía N; quan hệ 1–1 (xuất, nhập trả, nhận điều chuyển) đặt khóa ngoại ở phía HÓA ĐƠN / PHIẾU KHO kèm ràng buộc duy nhất; quan hệ N–M thành bảng riêng có khóa ghép; thực thể yếu nhận khóa của thực thể chủ vào khóa ghép. Các vai trò khác nhau của NHÂN VIÊN thành các khóa ngoại khác tên cùng trỏ về NHÂN VIÊN.
 
 | Bảng (nguồn trên ERD) | Khóa chính | Khóa ngoại → bảng được tham chiếu | Thuộc tính khác |
 | --- | --- | --- | --- |
@@ -452,7 +462,7 @@ Quy tắc chuyển: quan hệ 1–N đặt khóa ngoại ở phía N; quan hệ 
 | HÓA ĐƠN | Số hóa đơn | Mã đơn → ĐƠN HÀNG (duy nhất) | Thời điểm phát hành, số lần in |
 | CA THU NGÂN | Mã ca | Mã CN → CHI NHÁNH; Mã thu ngân, Mã NV đóng thay, Mã NV làm chứng, Mã NV xác nhận chốt → NHÂN VIÊN | Thời điểm mở, đóng, chốt; tiền đầu ca, tiền kiểm đếm; lý do chênh lệch, lý do đóng thay; trạng thái |
 | TỒN KHO (quan hệ lưu kho) | Mã CN + Mã SP | Mã CN → CHI NHÁNH; Mã SP → SẢN PHẨM | Số lượng tồn, mức tồn tối thiểu |
-| PHIẾU KHO | Mã phiếu kho | Mã CN → CHI NHÁNH; Mã đơn → ĐƠN HÀNG (phiếu xuất bán); Mã phiếu trả → PHIẾU TRẢ (phiếu nhập hàng trả, duy nhất); Mã phiếu kho bị điều chỉnh → PHIẾU KHO; Mã NV lập (rỗng nếu tự động), Mã NV duyệt → NHÂN VIÊN | Loại phiếu, trạng thái, thời điểm lập, lý do, bên giao / bên nhận, số phiếu giao, thời điểm ghi nhận hoặc hủy |
+| PHIẾU KHO | Mã phiếu kho | Mã CN → CHI NHÁNH; Mã đơn → ĐƠN HÀNG (phiếu xuất bán); Mã phiếu trả → PHIẾU TRẢ (phiếu nhập hàng trả, duy nhất); Mã phiếu kho bị điều chỉnh → PHIẾU KHO; Mã phiếu xuất điều chuyển → PHIẾU KHO (phiếu nhập điều chuyển, duy nhất); Mã NV lập (rỗng nếu tự động), Mã NV duyệt → NHÂN VIÊN | Loại phiếu, trạng thái, thời điểm lập, lý do, bên giao / bên nhận, số phiếu giao, thời điểm ghi nhận hoặc hủy |
 | CHI TIẾT PHIẾU KHO (quan hệ chứa) | Mã phiếu kho + Mã SP | Mã phiếu kho → PHIẾU KHO; Mã SP → SẢN PHẨM | Số lượng |
 | YÊU CẦU BỔ SUNG | Mã yêu cầu | Mã CN → CHI NHÁNH; Mã NV lập → NHÂN VIÊN | Thời điểm lập, loại yêu cầu, nơi nhận |
 | CHI TIẾT YÊU CẦU (quan hệ đề nghị) | Mã yêu cầu + Mã SP | Mã yêu cầu → YÊU CẦU BỔ SUNG; Mã SP → SẢN PHẨM | Số lượng đề nghị |
@@ -482,6 +492,7 @@ R = đọc, W = ghi, RW = đọc và ghi.
 | 4.2 (4.3 chỉ đọc/ghi D5) | R |  |  |  | RW | R |
 | 4.4 | R |  |  |  | RW | R |
 | 4.5 | R |  |  |  | RW |  |
+| 4.6 | R |  |  |  | RW | R |
 | 5.1 |  |  | R | R |  | R |
 | 5.2 | R |  | R |  | R | R |
 | 5.3 | R |  |  |  | R | R |
@@ -500,7 +511,7 @@ Mỗi kho chỉ được ghi bởi một nhóm: D1 bởi nhóm 1, D2 bởi nhóm
 | 1.0 Quản lý sản phẩm | Trụ sở: thông tin sản phẩm, thông tin nhóm, giá mới, trạng thái kinh doanh | Trụ sở: kết quả cập nhật | RW D1 |
 | 2.0 Quản lý khách hàng | Khách hàng: thông tin khách, thông tin thay đổi, yêu cầu xem lịch sử; NVBH: tiêu chí tra cứu | Khách hàng: mã khách, kết quả cập nhật, lịch sử mua và trả; NVBH: hồ sơ khách | RW D2; R D3 |
 | 3.0 Quản lý bán hàng và thanh toán | Khách hàng: yêu cầu mua, phương thức thanh toán, yêu cầu trả; NVBH: lệnh chốt/mở lại, yêu cầu hủy, kết quả kiểm tra hàng trả; Thu ngân: đơn cần thu, xác nhận tiền mặt, kết quả tra soát, yêu cầu in lại, yêu cầu hoàn, yêu cầu mở/đóng ca, tiền đầu ca, tiền kiểm đếm; QL: thông tin lập/chốt/hủy đơn và phiếu trả (khi QL trực tiếp bán), quyết định duyệt phiếu trả, duyệt hoàn tiền mặt, đóng ca thay, xác nhận chốt ca; Trụ sở: quyết định duyệt thay; Ngân hàng: kết quả thanh toán, kết quả hoàn | Khách hàng: hóa đơn, phiếu trả và kết quả hoàn; NVBH: kết quả xử lý đơn (chốt, hủy, tồn khả dụng); Thu ngân: kết quả thu/hoàn, trạng thái ca, kết quả đối soát; QL: kết quả xử lý đơn, phiếu cần duyệt, phiếu chưa hoàn xong, kết quả đối soát chờ xác nhận; Trụ sở: việc cần duyệt thay; Ngân hàng: yêu cầu thanh toán, yêu cầu hoàn | R D1, D2, D6; RW D3, D4 |
-| 4.0 Quản lý tồn kho phục vụ bán hàng | Kho tổng, NCC: phiếu giao; NV kho: số lượng thực nhận, đề nghị xuất khác/điều chỉnh, đề nghị bổ sung; QL: mức tồn tối thiểu, quyết định duyệt phiếu kho | NV kho: kết quả xử lý kho, thông tin tồn; QL: phiếu kho chờ duyệt, thông tin tồn; Kho tổng: yêu cầu điều chuyển, thông tin hàng xuất trả; NCC: yêu cầu nhập | R D1, D6; RW D5 |
+| 4.0 Quản lý tồn kho phục vụ bán hàng | Kho tổng, NCC: phiếu giao; NV kho: số lượng thực nhận, đề nghị xuất khác/điều chỉnh, đề nghị bổ sung, đề nghị xuất điều chuyển, xác nhận nhận hàng điều chuyển; QL: mức tồn tối thiểu, quyết định duyệt phiếu kho | NV kho: kết quả xử lý kho, thông tin tồn, hàng điều chuyển đang đến; QL: phiếu kho chờ duyệt, thông tin tồn; Kho tổng: yêu cầu điều chuyển, thông tin hàng xuất trả; NCC: yêu cầu nhập | R D1, D6; RW D5 |
 | 5.0 Báo cáo và hỗ trợ quản lý | Trụ sở, QL, NVBH, NV kho: yêu cầu báo cáo (kỳ, phạm vi) | Trụ sở, QL: báo cáo doanh thu, sản phẩm, tồn kho, doanh số; NVBH: doanh số cá nhân; NV kho: báo cáo tồn; QL, NV kho: cảnh báo tồn | R D1, D3, D4, D5, D6 |
 | 6.0 Quản lý nhân viên và chi nhánh | Trụ sở: hồ sơ nhân viên, phân công, yêu cầu tài khoản, thông tin chi nhánh | Trụ sở: kết quả hoặc lý do từ chối, thông tin tài khoản | R D3, D4, D5; RW D6 |
 
@@ -532,7 +543,7 @@ DFD mức 0 có 6 tiến trình, 9 tác nhân, 6 kho và 58 luồng (luồng đ�
 | 1.0 | Trụ sở: Thông tin sản phẩm, giá, trạng thái | Trụ sở: Kết quả cập nhật sản phẩm | D1 ↔: Thông tin sản phẩm |
 | 2.0 | Khách hàng: Thông tin khách hàng, yêu cầu xem lịch sử; NVBH: Tiêu chí tra cứu khách hàng | Khách hàng: Mã khách hàng, lịch sử mua và trả; NVBH: Hồ sơ khách hàng | D2 ↔: Hồ sơ khách hàng; D3 →: Đơn và phiếu trả của khách |
 | 3.0 | Khách hàng: Yêu cầu mua, thông tin thanh toán, yêu cầu trả hàng; NVBH: Thông tin lập, chốt, hủy đơn, kiểm tra hàng trả; Thu ngân: Xác nhận thu/hoàn, thông tin ca, yêu cầu in lại; QL: Thông tin xử lý đơn, quyết định duyệt, thông tin ca; Trụ sở: Quyết định duyệt thay; Ngân hàng: Kết quả giao dịch; 4.0: Kết quả tồn, giữ/xuất hàng, nhập trả | Khách hàng: Hóa đơn, phiếu trả, kết quả hoàn tiền; NVBH: Kết quả xử lý đơn, tồn khả dụng; Thu ngân: Kết quả thu/hoàn, đối soát ca; QL: Kết quả xử lý, yêu cầu duyệt, kết quả đối soát; Trụ sở: Yêu cầu duyệt thay; Ngân hàng: Yêu cầu thanh toán, hoàn tiền; 4.0: Yêu cầu kiểm tra, giữ, xuất hàng; thông tin hàng trả tốt | D1 →: Thông tin sản phẩm, giá; D2 →: Hồ sơ khách hàng; D6 →: Thông tin chi nhánh; D3 ↔: Đơn hàng, phiếu trả; D4 ↔: Giao dịch, hóa đơn, ca |
-| 4.0 | NCC: Phiếu giao hàng; Kho tổng: Phiếu điều chuyển; NV kho: Số lượng thực nhận, đề nghị xuất/điều chỉnh, đề nghị bổ sung; QL: Mức tồn tối thiểu, quyết định duyệt phiếu kho; 3.0: Yêu cầu kiểm tra, giữ, xuất hàng; thông tin hàng trả tốt | NCC: Yêu cầu nhập hàng; Kho tổng: Yêu cầu điều chuyển, thông tin hàng xuất trả; NV kho: Kết quả xử lý kho, thông tin tồn; QL: Phiếu kho chờ duyệt, thông tin tồn; 3.0: Kết quả tồn, giữ/xuất hàng, nhập trả | D1 →: Thông tin sản phẩm; D6 →: Thông tin chi nhánh; D5 ↔: Tồn, phiếu kho, yêu cầu bổ sung |
+| 4.0 | NCC: Phiếu giao hàng; Kho tổng: Phiếu điều chuyển; NV kho: Số lượng thực nhận, đề nghị xuất/điều chỉnh, đề nghị bổ sung, điều chuyển, xác nhận nhận hàng; QL: Mức tồn tối thiểu, quyết định duyệt phiếu kho; 3.0: Yêu cầu kiểm tra, giữ, xuất hàng; thông tin hàng trả tốt | NCC: Yêu cầu nhập hàng; Kho tổng: Yêu cầu điều chuyển, thông tin hàng xuất trả; NV kho: Kết quả xử lý kho, thông tin tồn, hàng điều chuyển đến; QL: Phiếu kho chờ duyệt, thông tin tồn; 3.0: Kết quả tồn, giữ/xuất hàng, nhập trả | D1 →: Thông tin sản phẩm; D6 →: Thông tin chi nhánh; D5 ↔: Tồn, phiếu kho, yêu cầu bổ sung |
 | 5.0 | Trụ sở, QL: Yêu cầu báo cáo; NVBH: Yêu cầu xem doanh số; NV kho: Yêu cầu báo cáo tồn | Trụ sở: Báo cáo toàn chuỗi; QL: Báo cáo chi nhánh, cảnh báo tồn; NVBH: Doanh số cá nhân; NV kho: Báo cáo tồn, cảnh báo tồn kho | D1 →: Danh mục sản phẩm; D3 →: Đơn hàng, phiếu trả; D4 →: Giao dịch thu/hoàn, ca; D5 →: Tồn, phiếu kho; D6 →: Nhân viên, chi nhánh |
 | 6.0 | Trụ sở: Hồ sơ nhân viên, phân công, tài khoản, chi nhánh | Trụ sở: Kết quả cập nhật, thông tin tài khoản | D6 ↔: Nhân viên, chi nhánh; D3 →: Đơn, phiếu chưa kết thúc; D4 →: Ca chưa chốt; D5 →: Tồn, phiếu kho chi nhánh |
 
@@ -540,7 +551,7 @@ Sơ đồ đã được kiểm tra tự động: không có luồng tác nhân�
 
 ### 6.4 DFD mức 1 cho 6 tiến trình
 
-Sáu sơ đồ mức 1 phân rã đủ 27 chức năng con theo BFD và đã qua kiểm tra tự động: mỗi sơ đồ có đúng tập tác nhân, chiều luồng và quyền đọc/ghi kho như tiến trình cha ở mức 0; mọi luồng có nhãn và đi qua một chức năng con; mọi chức năng con có vào và ra; không có đường cắt nhau.
+Sáu sơ đồ mức 1 phân rã đủ 28 chức năng con theo BFD và đã qua kiểm tra tự động: mỗi sơ đồ có đúng tập tác nhân, chiều luồng và quyền đọc/ghi kho như tiến trình cha ở mức 0; mọi luồng có nhãn và đi qua một chức năng con; mọi chức năng con có vào và ra; không có đường cắt nhau.
 
 Quy ước vẽ ở mức 1: tiến trình mức 0 khác (ví dụ 4.0 trong sơ đồ 3.0) vẽ bằng ký hiệu tiến trình và giữ mã của nó, không vẽ thành tác nhân. Bản sao tác nhân và kho đánh dấu như mức 0. Luồng nội bộ giữa hai chức năng con chỉ có 3.2 → 3.3 (thông tin đơn hoàn tất). Sự kiện thời gian ghi chú trong ô tiến trình (3.4, 5.4).
 
@@ -570,7 +581,7 @@ Quy ước vẽ ở mức 1: tiến trình mức 0 khác (ví dụ 4.0 trong sơ
 
 ## 7. Tình huống kiểm tra tính nhất quán
 
-16 tình huống dưới đây là bài kiểm tra thiết kế, không phải kết quả chạy phần mềm. Với mỗi tình huống, DFD phải chỉ ra được chức năng, luồng và kho tham gia, ERD phải có đủ thuộc tính để ra đúng kết quả kỳ vọng. Giá đều đã gồm VAT.
+17 tình huống dưới đây là bài kiểm tra thiết kế, không phải kết quả chạy phần mềm. Với mỗi tình huống, DFD phải chỉ ra được chức năng, luồng và kho tham gia, ERD phải có đủ thuộc tính để ra đúng kết quả kỳ vọng. Giá đều đã gồm VAT.
 
 | Mã | Tình huống và dữ liệu | Kết quả kỳ vọng | Quy tắc | Chức năng, kho |
 | --- | --- | --- | --- | --- |
@@ -590,6 +601,7 @@ Quy ước vẽ ở mức 1: tiến trình mức 0 khác (ví dụ 4.0 trong sơ
 | KT-14 Ngưỡng và yêu cầu bổ sung | Tồn A = 3, ngưỡng 3; sau đó bán 1 A. Sản phẩm D chưa đặt ngưỡng. | Tồn 3 = ngưỡng: không cảnh báo. Tồn 2 < 3: cảnh báo sáng hôm sau. NV kho lập yêu cầu 20 A gửi kho tổng: tồn vẫn 2. Hàng về, kiểm nhận 20: tồn 22. D không bị cảnh báo, được liệt kê ở mục Chưa thiết lập. | TK-02, TK-05, TK-06 | 5.4, 4.4, 4.2; D1, D5 |
 | KT-15 Phê duyệt và lịch sử | QL CN1 tự lập một phiếu trả. NVBH An bán đơn 1.000.000 tại CN1 tháng 10, chuyển sang CN2 ngày 01/11 khi không còn đơn dở; phiếu trả 200.000 của đơn đó được duyệt tháng 11. | QL không tự duyệt được; trụ sở duyệt thay, ghi lý do. Tháng 10 doanh số 1.000.000 thuộc An tại CN1; tháng 11 hàng bán bị trả 200.000 trừ vào An tại CN1, không vào CN2. Đơn cũ vẫn mang CN1 và tên An. | K-02, K-05, NV-02, DT-05 | 3.4, 6.2, 5.5; D3, D6 |
 | KT-16 Thu ngân vắng đột xuất | Ca C7 của thu ngân Bình đang mở thì Bình phải nghỉ; trụ sở muốn chuyển Bình sang chi nhánh khác. | QL kiểm đếm cùng một NVBH làm chứng, đóng ca thay, ghi lý do: ca Chờ xác nhận; trụ sở xác nhận chốt vì QL là người đóng. Yêu cầu chuyển chi nhánh của Bình bị từ chối cho đến khi C7 Đã chốt. | CA-04, K-02, NV-02 | 3.5, 6.2; D4, D6 |
+| KT-17 Điều chuyển giữa hai chi nhánh | Tồn A tại CN1 = 10, tại CN2 = 0. NV kho CN1 lập Xuất điều chuyển 4 A sang CN2. | Chờ duyệt: tồn CN1 = 10, tồn khả dụng = 6; lập phiếu gửi tới chính CN1 bị từ chối. QL CN1 duyệt: tồn CN1 = 6, đang vận chuyển 4 A, tồn CN2 = 0; trụ sở không cho CN2 ngừng hoạt động. NV kho CN2 ghi nhận: tồn CN2 = 4, không còn hàng đang vận chuyển; ghi nhận lần hai bị từ chối. | TK-01, TK-03, TK-07, NV-04, K-02 | 4.6, 6.4; D5, D6 |
 
 ## 8. Giới hạn, thay đổi so với bản cũ và kiểm tra nhất quán
 
@@ -599,7 +611,7 @@ Quy ước vẽ ở mức 1: tiến trình mức 0 khác (ví dụ 4.0 trong sơ
 | --- | --- | --- |
 | Khách trả một đơn bằng nhiều phương thức | Không hỗ trợ (G-03); khách có thể tách thành hai đơn | Cho nhiều giao dịch thu trên một đơn và hoàn theo từng phương thức |
 | Ngân hàng báo kết quả trái với kết quả đã ghi (ví dụ trừ tiền khách cho giao dịch đã Thất bại) | Tra soát với ngân hàng ngoài phần mềm; ngân hàng hoàn cho khách | Thêm loại giao dịch "hoàn thu thừa" |
-| Trả hàng khác chi nhánh; điều chuyển giữa hai chi nhánh | Không hỗ trợ (G-06); hàng thừa xuất trả kho tổng | Phiếu điều chuyển hai đầu có trạng thái đang vận chuyển |
+| Trả hàng khác chi nhánh | Không hỗ trợ (G-06) | Chuyển phiếu trả và tiền hoàn giữa chi nhánh; hàng đi qua điều chuyển (4.6) |
 | Khuyến mại, tích điểm | Ngoài phạm vi (G-02) | 5.1 đã có tỷ trọng doanh thu khách có hồ sơ làm căn cứ |
 | Tách VAT, hóa đơn điện tử | Ngoài phạm vi (G-05) | Thuế suất theo sản phẩm, chép vào chi tiết đơn khi chốt |
 | Kiểm kê định kỳ | Chỉ ghi kết quả bằng phiếu điều chỉnh có duyệt (TK-04) | Phiếu kiểm kê tự sinh điều chỉnh |
@@ -617,14 +629,15 @@ Quy ước vẽ ở mức 1: tiến trình mức 0 khác (ví dụ 4.0 trong sơ
 - Cho phép mở lại đơn Chờ thanh toán; phiếu trả duyệt trong ngày, hàng do khách giữ cho đến khi duyệt.
 - Ca: trạng thái Chờ đối soát đổi thành Chờ xác nhận; thêm đóng ca thay; bỏ bàn giao khoản hoàn qua ca (phiếu chưa hoàn xong do QL chi nhánh theo dõi).
 - Bỏ luồng trực tiếp 5.4 → 4.4; cảnh báo đi tới QL/NV kho. Nghiệp vụ kho do NV kho lập, QL chỉ đặt ngưỡng và duyệt, không có duyệt thay phiếu kho; NVBH xem tồn qua 3.1; 4.0 không đọc D3 (3.0 gửi kèm dòng hàng).
+- Thêm 4.6 Điều chuyển hàng giữa chi nhánh (17/11/2026): phiếu Xuất điều chuyển, Nhập điều chuyển, TK-07, KT-17.
 
 ### 8.3 Kết quả kiểm tra nhất quán
 
 - DFD mức 0: 6 tiến trình, 9 tác nhân, 6 kho, 58 luồng; luồng biên khớp bảng 6.2, nhãn luồng theo bảng 6.3; không có luồng tác nhân–kho, kho–kho, tác nhân–tác nhân, không có luồng thiếu nhãn.
-- DFD mức 1: 6 sơ đồ, đủ 27 chức năng; cả 6 sơ đồ cân bằng với mức 0 (cùng tác nhân, cùng chiều luồng, cùng tập kho đọc/ghi, không thêm nguồn/đích mới).
+- DFD mức 1: 6 sơ đồ, đủ 28 chức năng; cả 6 sơ đồ cân bằng với mức 0 (cùng tác nhân, cùng chiều luồng, cùng tập kho đọc/ghi, không thêm nguồn/đích mới).
 - Mọi luồng đọc/ghi kho trên DFD khớp ma trận 6.1; không tiến trình nào ghi vào kho của nhóm khác.
-- ERD: 13 thực thể và 34 mối quan hệ (5 quan hệ nhiều–nhiều có thuộc tính), tương ứng 18 bảng ở 5.7; thuộc tính, khóa và bậc liên kết khớp 5.1–5.2; ràng buộc ngoài sơ đồ ghi ở 5.3.
+- ERD: 13 thực thể và 35 mối quan hệ (5 quan hệ nhiều–nhiều có thuộc tính), tương ứng 18 bảng ở 5.7; thuộc tính, khóa và bậc liên kết khớp 5.1–5.2; ràng buộc ngoài sơ đồ ghi ở 5.3.
 - Mỗi thuộc tính trên ERD có chức năng ghi ở bảng 5.1; mọi dữ liệu ghi trên nhãn luồng kho của DFD mức 1 đều có thuộc tính hoặc mối quan hệ tương ứng trên ERD.
-- Đã đi qua KT-01 đến KT-16: mỗi tình huống có đủ chức năng, luồng, kho trên DFD và đủ thuộc tính trên ERD để ra kết quả kỳ vọng.
+- Đã đi qua KT-01 đến KT-17: mỗi tình huống có đủ chức năng, luồng, kho trên DFD và đủ thuộc tính trên ERD để ra kết quả kỳ vọng.
 - Doanh thu gộp, hàng bán bị trả, tiền thu/hoàn, số còn phải hoàn và đối soát ca được tính từ các mốc thời gian riêng (KT-10, KT-11), không tính lặp.
 - Mọi thay đổi nghiệp vụ của bản này đã được cập nhật cùng lúc vào quy tắc, DFD và ERD.
