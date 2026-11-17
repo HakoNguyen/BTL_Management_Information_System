@@ -16,7 +16,7 @@ from pydantic import BaseModel
 Mode = Literal["SUCCESS", "FAILED", "SILENT", "DUPLICATE"]
 
 app = FastAPI(title="bank-mock")
-state: dict[str, str] = {"mode": os.environ.get("BANK_MOCK_MODE", "SUCCESS")}
+state: dict[str, str] = {"mode": os.environ.get("BANK_MOCK_MODE", "SILENT")}
 
 
 class PaymentRequest(BaseModel):

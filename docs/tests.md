@@ -48,7 +48,7 @@ Khai báo trong `tests/fixtures.py`; test, dữ liệu demo và tài liệu dùn
 Sản phẩm mẫu theo đặc tả mục 7: `seed_product(conn, "A")` giá 100.000, kèm bản ghi lịch sử giá đầu tiên do
 `HQ_ID` lập lúc `SEED_AT` (cần `seed_staff` trước); B, C, D dùng cùng hàm với mã khác.
 
-## 3. Tình huống KT-01 đến KT-16
+## 3. Tình huống KT-01 đến KT-17
 
 Dữ liệu và kết quả mong đợi: nguyên văn ở [spec.md](spec.md) mục 7, không chép lại ở đây để tránh hai bản lệch nhau.
 Mỗi test assert đủ mọi ý trong cột "Kết quả kỳ vọng" của tình huống đó.
@@ -71,6 +71,7 @@ Mỗi test assert đủ mọi ý trong cột "Kết quả kỳ vọng" của tì
 | KT-14 | Ngưỡng và yêu cầu bổ sung | `tests/inventory/test_kt14_nguong.py` | 8 | xanh |
 | KT-15 | Phê duyệt và lịch sử | `tests/reports/test_kt15_phe_duyet.py` | 9 | xanh |
 | KT-16 | Thu ngân vắng đột xuất | `tests/shifts/test_kt16_thu_ngan_vang.py` | 6 | xanh |
+| KT-17 | Điều chuyển giữa hai chi nhánh | `tests/inventory/test_kt17_dieu_chuyen.py` | 11 | xanh |
 
 Khi một tình huống xanh, đổi cột "Trạng thái" thành "xanh" trong cùng thay đổi đó.
 

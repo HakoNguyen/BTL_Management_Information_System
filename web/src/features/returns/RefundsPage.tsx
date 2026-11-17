@@ -3,9 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Card, Popconfirm, Table } from "antd";
 import { client, unwrap, type Schemas } from "../../api/client";
-import { PendingTransactions, TXN_KEYS } from "../payments/PendingTransactions";
+import { PendingTransactions, useStartTxn } from "../payments/PendingTransactions";
 import { useCurrentShift } from "../shifts/ShiftsPage";
-import { useWrite } from "../../ui";
 import { returnColumns } from "./ReturnsPage";
 
 type ReturnSlip = Schemas["ReturnSlip"];
@@ -21,10 +20,8 @@ export function RefundsPage() {
       ),
   });
   const current = useCurrentShift();
-  const refund = useWrite(
-    (returnId: string) =>
-      unwrap(client.POST("/returns/{return_id}/refunds", { params: { path: { return_id: returnId } } })),
-    TXN_KEYS,
+  const refund = useStartTxn((returnId: string) =>
+    unwrap(client.POST("/returns/{return_id}/refunds", { params: { path: { return_id: returnId } } })),
   );
   // Giao dịch hoàn thất bại trong ca: hiện để thu ngân biết phiếu cần thử lại
   const failed = new Map(

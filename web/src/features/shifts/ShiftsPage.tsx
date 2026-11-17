@@ -14,6 +14,7 @@ import {
   Popconfirm,
   Select,
   Space,
+  Statistic,
   Table,
   Tag,
 } from "antd";
@@ -28,7 +29,7 @@ import {
   TXN_TYPE_LABEL,
   optionsOf,
 } from "../../labels";
-import { FormModal, moneyColumn, useWrite } from "../../ui";
+import { BRAND, BranchFilter, FormModal, STATUS_COLOR, moneyColumn, useWrite } from "../../ui";
 import { ReconcileModal } from "../payments/PendingTransactions";
 import { canApproveCashRefund, canReconcile, shiftActions } from "./shiftActions";
 
@@ -56,7 +57,7 @@ export const txnColumns = [
   {
     title: "Trạng thái",
     dataIndex: "status",
-    render: (v: Schemas["TxnStatus"]) => <Tag>{TXN_STATUS_LABEL[v]}</Tag>,
+    render: (v: Schemas["TxnStatus"]) => <Tag color={STATUS_COLOR[v]}>{TXN_STATUS_LABEL[v]}</Tag>,
   },
 ];
 
@@ -152,9 +153,22 @@ function PendingInShift({ shift }: { shift: ShiftDetail }) {
 function ShiftResult({ shift }: { shift: ShiftDetail }) {
   return (
     <>
+      {/* Tổng ca: thu, hoàn Thành công mọi phương thức (tiền mặt, thẻ, chuyển khoản) */}
+      <Space size="large" wrap style={{ marginBottom: 16 }}>
+        <Statistic title="Tổng thu trong ca" value={money(shift.total_collected)} suffix="₫" />
+        <Statistic title="Tổng hoàn trong ca" value={money(shift.total_refunded)} suffix="₫" />
+        <Statistic
+          title="Tổng doanh thu ca (thu − hoàn)"
+          value={money(shift.net_total)}
+          suffix="₫"
+          valueStyle={{ color: BRAND, fontWeight: 600 }}
+        />
+      </Space>
       <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
         <Descriptions.Item label="Mã ca">{shift.shift_id}</Descriptions.Item>
-        <Descriptions.Item label="Trạng thái">{SHIFT_STATUS_LABEL[shift.status]}</Descriptions.Item>
+        <Descriptions.Item label="Trạng thái">
+          <Tag color={STATUS_COLOR[shift.status]}>{SHIFT_STATUS_LABEL[shift.status]}</Tag>
+        </Descriptions.Item>
         <Descriptions.Item label="Mở lúc">{dateTime(shift.opened_at)}</Descriptions.Item>
         <Descriptions.Item label="Đóng lúc">{dateTime(shift.closed_at)}</Descriptions.Item>
         <Descriptions.Item label="Tiền đầu ca">{money(shift.opening_cash)}</Descriptions.Item>
@@ -223,6 +237,7 @@ export function ShiftsPage() {
   // GET /shifts/current chỉ dành cho thu ngân
   const current = useCurrentShift(isCashier);
   const [status, setStatus] = useState<Shift["status"]>();
+  const [branchId, setBranchId] = useState<string>(); // chỉ HQ: xem ca mọi chi nhánh
   const history = useQuery({
     queryKey: ["shifts", "list", status],
     queryFn: () => unwrap(client.GET("/shifts", { params: { query: { status } } })),
@@ -323,21 +338,24 @@ export function ShiftsPage() {
         title={isCashier ? "Ca của tôi" : role === "HQ" ? "Ca các chi nhánh" : "Ca của chi nhánh"}
         extra={
           !isCashier && (
-            <Select
-              allowClear
-              placeholder="Mọi trạng thái"
-              style={{ minWidth: 160 }}
-              options={optionsOf(SHIFT_STATUS_LABEL)}
-              value={status}
-              onChange={setStatus}
-            />
+            <Space wrap>
+              {role === "HQ" && <BranchFilter value={branchId} onChange={setBranchId} />}
+              <Select
+                allowClear
+                placeholder="Mọi trạng thái"
+                style={{ minWidth: 160 }}
+                options={optionsOf(SHIFT_STATUS_LABEL)}
+                value={status}
+                onChange={setStatus}
+              />
+            </Space>
           )
         }
       >
         <Table<Shift>
           rowKey="shift_id"
           loading={history.isPending}
-          dataSource={history.data}
+          dataSource={history.data?.filter((row) => !branchId || row.branch_id === branchId)}
           scroll={{ x: true }}
           expandable={{ expandedRowRender: (row) => <ShiftHistoryDetail shiftId={row.shift_id} /> }}
           columns={[
@@ -353,7 +371,9 @@ export function ShiftsPage() {
             {
               title: "Trạng thái",
               dataIndex: "status",
-              render: (v: Shift["status"]) => <Tag>{SHIFT_STATUS_LABEL[v]}</Tag>,
+              render: (v: Shift["status"]) => (
+                <Tag color={STATUS_COLOR[v]}>{SHIFT_STATUS_LABEL[v]}</Tag>
+              ),
             },
             moneyColumn("Tiền mặt kỳ vọng", "expected_cash"),
             {

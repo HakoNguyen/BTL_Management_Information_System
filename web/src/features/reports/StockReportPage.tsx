@@ -4,13 +4,8 @@ import { Card, Table, Tag, Typography, type TableColumnsType } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { LEVEL_STATUS_LABEL, SLIP_TYPE_LABEL } from "../../labels";
+import { STATUS_COLOR } from "../../ui";
 import { ReportFilter, ReportHeader, type ReportParams } from "./ReportFilter";
-
-const LEVEL_COLOR: Record<Schemas["LevelStatus"], string> = {
-  BELOW_MIN: "red",
-  OK: "green",
-  NOT_SET: "default",
-};
 
 /** Cột tồn tại thời điểm lập (dòng `StockReportLine`); dùng chung với trang tồn kho chi nhánh. */
 export const stockLineColumns: TableColumnsType<Schemas["StockReportLine"]> = [
@@ -29,7 +24,7 @@ export const stockLineColumns: TableColumnsType<Schemas["StockReportLine"]> = [
     title: "Mức tồn",
     dataIndex: "level_status",
     render: (status: Schemas["LevelStatus"]) => (
-      <Tag color={LEVEL_COLOR[status]}>{LEVEL_STATUS_LABEL[status]}</Tag>
+      <Tag color={STATUS_COLOR[status]}>{LEVEL_STATUS_LABEL[status]}</Tag>
     ),
   },
 ];

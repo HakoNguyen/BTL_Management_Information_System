@@ -155,3 +155,76 @@ async def test_unlock_account(client: httpx.AsyncClient, hq: dict[str, str]) -> 
         again = await client.post(f"/employees/{employee_id}/account/unlock", headers=hq)
         assert again.status_code == 409
         assert again.json()["error_code"] == ErrorCode.INVALID_STATE
+
+
+async def _reset(
+    client: httpx.AsyncClient, headers: dict[str, str], employee_id: str
+) -> httpx.Response:
+    return await client.post(f"/employees/{employee_id}/account/reset-password", headers=headers)
+
+
+async def test_reset_password(
+    client: httpx.AsyncClient, conn: asyncpg.Connection, hq: dict[str, str]
+) -> None:
+    """6.3: cấp lại mật khẩu tạm, mật khẩu cũ hết hiệu lực ngay; tên đăng nhập giữ nguyên."""
+    response = await _reset(client, hq, SALES_ID)
+    assert response.status_code == 200
+    body = response.json()
+    password = body.pop("temporary_password")
+    assert body == {
+        "employee_id": SALES_ID,
+        "username": SALES_ID.lower(),
+        "account_status": AccountStatus.ACTIVE,
+    }
+    assert len(password) >= 12
+    assert (await _login(client, SALES_ID.lower(), TEST_PASSWORD)).status_code == 401
+    assert (await _login(client, SALES_ID.lower(), password)).status_code == 200
+    assert await _account(conn, SALES_ID) == (SALES_ID.lower(), AccountStatus.ACTIVE)
+
+
+async def test_reset_password_keeps_lock(
+    client: httpx.AsyncClient, conn: asyncpg.Connection, hq: dict[str, str]
+) -> None:
+    """NV-03: cấp lại không mở khóa; tài khoản Bị khóa vẫn không đăng nhập được (K-01)."""
+    await client.post(f"/employees/{SALES_ID}/account/lock", headers=hq)
+    response = await _reset(client, hq, SALES_ID)
+    assert response.status_code == 200
+    assert response.json()["account_status"] == AccountStatus.LOCKED
+    login = await _login(client, SALES_ID.lower(), response.json()["temporary_password"])
+    assert login.status_code == 403
+    assert login.json()["details"]["rule"] == "K-01"
+    assert await _account(conn, SALES_ID) == (SALES_ID.lower(), AccountStatus.LOCKED)
+
+
+async def test_reset_password_invalid(
+    client: httpx.AsyncClient, conn: asyncpg.Connection, hq: dict[str, str]
+) -> None:
+    """NV-03: chỉ cấp lại cho nhân viên Đang làm đã có tài khoản."""
+    await seed_employee(
+        conn,
+        "NV-CU",
+        Role.SALES,
+        BRANCH_1,
+        account_status=AccountStatus.LOCKED,
+        status=EmployeeStatus.LEFT,
+    )
+    for employee_id in (NEW_ID, "NV-CU"):  # chưa cấp tài khoản; đã nghỉ
+        response = await _reset(client, hq, employee_id)
+        assert response.status_code == 409
+        assert response.json()["error_code"] == ErrorCode.INVALID_STATE
+        assert response.json()["details"]["rule"] == "NV-03"
+    assert await _account(conn, NEW_ID) == (None, None)
+    # Mật khẩu cũ còn nguyên: đúng mật khẩu nên bị chặn vì đã nghỉ (403), không phải sai (401)
+    assert (await _login(client, "nv-cu", TEST_PASSWORD)).status_code == 403
+    assert (await _reset(client, hq, "NV-X")).status_code == 404
+
+
+@pytest.mark.usefixtures("hq")
+async def test_reset_password_requires_hq(client: httpx.AsyncClient) -> None:
+    """K-01: chỉ trụ sở cấp lại mật khẩu."""
+    sales_headers = await login_as(client, SALES_ID)
+    response = await _reset(client, sales_headers, SALES_ID)
+    assert response.status_code == 403
+    assert response.json()["error_code"] == ErrorCode.FORBIDDEN
+    assert response.json()["details"]["rule"] == "K-01"
+    assert (await _login(client, SALES_ID.lower(), TEST_PASSWORD)).status_code == 200

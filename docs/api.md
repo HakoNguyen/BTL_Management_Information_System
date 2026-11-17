@@ -65,6 +65,7 @@ Viết tắt vai trò: HQ = Trụ sở, QL = `MANAGER`, BH = `SALES`, TN = `CASH
 | 6.2 | `PUT /employees/{employee_id}/assignment` | HQ | NV-02 |
 | 6.3 | `POST /employees/{employee_id}/account` | HQ | NV-03 |
 | 6.3 | `POST /employees/{employee_id}/account/lock`, `…/account/unlock` | HQ | NV-03 |
+| 6.3 | `POST /employees/{employee_id}/account/reset-password` | HQ | NV-03 |
 
 Trường (chốt ở vòng 1). `?` là trường không bắt buộc; ở `PATCH`, trường không gửi thì giữ nguyên.
 
@@ -93,6 +94,7 @@ Trường (chốt ở vòng 1). `?` là trường không bắt buộc; ở `PATC
 | `PUT /employees/{employee_id}/assignment` | `AssignmentRequest` → `Employee` | `NOT_FOUND`; `INVALID_STATE` (đã nghỉ); `RULE_VIOLATION` NV-01, NV-02 (thông báo liệt kê chứng từ đang chặn), NV-04 (chi nhánh Ngừng hoạt động) |
 | `POST /employees/{employee_id}/account` | `AccountCreate` → `201 AccountIssued` | `NOT_FOUND`; `INVALID_STATE` NV-03 (đã nghỉ, đã có tài khoản); `DUPLICATE` NV-03 (tên đăng nhập đã dùng, kể cả của người đã nghỉ) |
 | `POST /employees/{employee_id}/account/lock`, `…/unlock` | → `Employee` | `NOT_FOUND`; `INVALID_STATE` (chưa cấp, hoặc đã ở trạng thái đích) |
+| `POST /employees/{employee_id}/account/reset-password` | → `200 AccountIssued` (mật khẩu tạm mới, chỉ trả một lần; `username`, `account_status` giữ nguyên, tài khoản Bị khóa vẫn khóa) | `NOT_FOUND`; `INVALID_STATE` NV-03 (đã nghỉ, chưa cấp tài khoản) |
 
 Quyết định của người dùng ở vòng 1 (đặc tả để trống): không tạo, không phân công vào chi nhánh Ngừng hoạt động;
 không phân công, không cấp tài khoản cho nhân viên Đã nghỉ; nhân viên chưa từng có tài khoản được chuyển Đã nghỉ;
@@ -148,7 +150,7 @@ Sản phẩm mới không có dòng `stock` nào, tức tồn 0 tại mọi chi 
 | --- | --- | --- | --- |
 | 2.1 | `POST /customers` | BH | KH-01 |
 | 2.2 | `PATCH /customers/{customer_id}` | BH | KH-01, KH-03 |
-| 2.3 | `GET /customers` (lọc theo `phone` hoặc `customer_id`) | BH | KH-02 |
+| 2.3 | `GET /customers` (lọc theo `phone` hoặc `customer_id`; không lọc = cả danh sách) | BH | KH-02 |
 | 2.4 | `GET /customers/{customer_id}/history` (kèm `phone` để xác minh) | BH | KH-04 |
 
 Trường (chốt ở vòng 3). `?` là trường không bắt buộc; ở `PATCH`, trường không gửi thì giữ nguyên.
@@ -167,7 +169,8 @@ và trả về là số đã chuẩn hóa.
 | --- | --- | --- |
 | `POST /customers` | `CustomerCreate` → `201 Customer` (tạo mới, `registered_on` = ngày hiện tại); số đã có hồ sơ thì `200 Customer` là hồ sơ có sẵn, không đổi gì | `VALIDATION_ERROR` KH-01 |
 | `PATCH /customers/{customer_id}` | `CustomerUpdate` → `Customer` | `NOT_FOUND`; `RULE_VIOLATION` KH-02 (KHLE); `DUPLICATE` KH-01 (số thuộc hồ sơ khác); `VALIDATION_ERROR` KH-01 |
-| `GET /customers?phone=…` hoặc `?customer_id=…` | → `Customer[]` (0 hoặc 1 phần tử; rỗng = "Không tìm thấy") | `VALIDATION_ERROR` (không gửi hoặc gửi cả hai tham số); `RULE_VIOLATION` KH-02 (tra KHLE); `VALIDATION_ERROR` KH-01 |
+| `GET /customers?phone=…` hoặc `?customer_id=…` | → `Customer[]` (0 hoặc 1 phần tử; rỗng = "Không tìm thấy") | `VALIDATION_ERROR` (gửi cả hai tham số); `RULE_VIOLATION` KH-02 (tra KHLE); `VALIDATION_ERROR` KH-01 |
+| `GET /customers` (không tham số; tính năng thêm 16/11/2026) | → `Customer[]`: mọi khách có hồ sơ, không gồm KHLE, mới nhất trước theo `customer_id`. Dùng cho danh sách ở trang Khách hàng và ô chọn khách khi lập đơn | — |
 
 Không có endpoint xóa khách (KH-03). Khách dùng chung toàn chuỗi (G-06) nên không so chi nhánh.
 
@@ -181,7 +184,7 @@ Trường 2.4 (chốt ở vòng 7). Lịch sử lấy ở mọi chi nhánh vì k
 | --- | --- | --- |
 | `GET /customers/{customer_id}/history?phone=…` | → `CustomerHistory` | `NOT_FOUND`; `RULE_VIOLATION` KH-02 (KHLE); `VALIDATION_ERROR` KH-01 (số sai định dạng); `RULE_VIOLATION` KH-04 (số đã chuẩn hóa không khớp hồ sơ) |
 
-### Nhóm 4 – Tồn kho (vòng 4; 4.4 ở vòng 8)
+### Nhóm 4 – Tồn kho (vòng 4; 4.4 ở vòng 8; 4.6 ở vòng 11)
 
 | Chức năng | Method, đường dẫn | Vai trò | Quy tắc |
 | --- | --- | --- | --- |
@@ -192,6 +195,9 @@ Trường 2.4 (chốt ở vòng 7). Lịch sử lấy ở mọi chi nhánh vì k
 | 4.2, 4.3 | `POST /stock-slips/{slip_id}/approve`, `…/reject` | QL | TK-03, K-02 |
 | 4.5 | `PUT /stock/{product_id}/min-level` | QL | TK-05 |
 | 4.4 | `POST /replenishment-requests`, `GET /replenishment-requests` | KHO (xem: QL, KHO) | TK-06 |
+| 4.6 | `POST /stock-slips` với `type` = `OUT_TRANSFER`; duyệt, từ chối qua `…/approve`, `…/reject` | KHO; QL duyệt | TK-07, TK-03 |
+| 4.6 | `GET /stock-slips/incoming-transfers` | QL, KHO | TK-07 |
+| 4.6 | `POST /stock-slips/{slip_id}/receive` | KHO | TK-07 |
 
 Trường (chốt ở vòng 4). `?` là trường không bắt buộc. Chi nhánh luôn là chi nhánh của người gọi; phiếu của chi nhánh
 khác trả `FORBIDDEN` `rule` = K-01.
@@ -200,9 +206,9 @@ khác trả `FORBIDDEN` `rule` = K-01.
 | --- | --- |
 | `StockLevel` (response) | `product_id`, `quantity`, `available` (tồn khả dụng, TK-01), `min_level` (null = Chưa thiết lập) |
 | `StockSlipItem` | `product_id`, `quantity` (> 0) |
-| `StockSlip` (response) | `slip_id`, `branch_id`, `type` (`SlipType`), `status` (`SlipStatus`), `created_at`, `created_by`, `reason`, `counterparty`, `delivery_no`, `order_id`, `return_id`, `adjusts_slip_id`, `approved_by` (người quyết định duyệt hoặc từ chối), `decision_reason`, `finalized_at` (các trường sau `created_at` null được), `items` (`StockSlipItem[]`) |
+| `StockSlip` (response) | `slip_id`, `branch_id`, `type` (`SlipType`), `status` (`SlipStatus`), `created_at`, `created_by`, `reason`, `counterparty`, `delivery_no`, `order_id`, `return_id`, `adjusts_slip_id`, `transfer_slip_id`, `approved_by` (người quyết định duyệt hoặc từ chối), `decision_reason`, `finalized_at` (các trường sau `created_at` null được), `items` (`StockSlipItem[]`) |
 | `InboundSlipCreate` | `type` (`IN_WAREHOUSE` hoặc `IN_SUPPLIER`), `counterparty`, `delivery_no`, `items` (≥ 1 dòng, mỗi sản phẩm một dòng) |
-| `StockSlipCreate` | `type` (`ADJUST_UP`, `OUT_DISPOSAL`, `OUT_TO_WAREHOUSE` hoặc `ADJUST_DOWN`), `reason`, `adjusts_slip_id?` (chỉ phiếu điều chỉnh), `items` (như trên) |
+| `StockSlipCreate` | `type` (`ADJUST_UP`, `OUT_DISPOSAL`, `OUT_TO_WAREHOUSE`, `ADJUST_DOWN` hoặc `OUT_TRANSFER`), `reason`, `adjusts_slip_id?` (chỉ phiếu điều chỉnh), `counterparty?` (mã chi nhánh nhận, bắt buộc với `OUT_TRANSFER` và chỉ dùng cho loại đó), `items` (như trên) |
 | `StockSlipReject` | `reason` (bắt buộc, K-03) |
 | `MinLevelChange` | `min_level` (số nguyên ≥ 0 hoặc null = Chưa thiết lập) |
 
@@ -210,7 +216,9 @@ khác trả `FORBIDDEN` `rule` = K-01.
 | --- | --- | --- |
 | `GET /stock` | → `StockLevel[]`: mọi sản phẩm, cặp chưa có bản ghi là tồn 0, chưa đặt ngưỡng (TK-01) | |
 | `POST /stock-slips/inbound` | `InboundSlipCreate` → `201 StockSlip` `POSTED`, tồn tăng ngay | `RULE_VIOLATION` TK-02 (chi nhánh Ngừng hoạt động); `DUPLICATE` TK-02 (bộ bên giao, số phiếu giao đã ghi ở chi nhánh); `NOT_FOUND` (sản phẩm); `VALIDATION_ERROR` (trùng sản phẩm) |
-| `POST /stock-slips` | `StockSlipCreate` → `201 StockSlip` `PENDING`; phiếu xuất giữ hàng | `INSUFFICIENT_STOCK` TK-03 (phiếu xuất vượt tồn khả dụng; `details.lines` gồm `product_id`, `quantity`, `available`); `NOT_FOUND` (sản phẩm, phiếu bị điều chỉnh không thuộc chi nhánh); `VALIDATION_ERROR` TK-04 (`adjusts_slip_id` trên phiếu không phải điều chỉnh) |
+| `POST /stock-slips` | `StockSlipCreate` → `201 StockSlip` `PENDING`; phiếu xuất giữ hàng | `INSUFFICIENT_STOCK` TK-03 (phiếu xuất vượt tồn khả dụng; `details.lines` gồm `product_id`, `quantity`, `available`); `NOT_FOUND` (sản phẩm, phiếu bị điều chỉnh không thuộc chi nhánh); `VALIDATION_ERROR` TK-04 (`adjusts_slip_id` trên phiếu không phải điều chỉnh); `VALIDATION_ERROR` TK-07 (thiếu `counterparty` ở `OUT_TRANSFER`, hoặc có ở loại khác); `NOT_FOUND` (chi nhánh nhận); `RULE_VIOLATION` TK-07 (chi nhánh nhận là chính mình hoặc Ngừng hoạt động; sản phẩm Ngừng bán) |
+| `GET /stock-slips/incoming-transfers` | → `StockSlip[]`: phiếu `OUT_TRANSFER` `POSTED` có `counterparty` là chi nhánh mình, chưa có phiếu nhập (hàng đang vận chuyển), cũ nhất trước | |
+| `POST /stock-slips/{slip_id}/receive` | `slip_id` là phiếu xuất điều chuyển → `201 StockSlip` `IN_TRANSFER` `POSTED` tại chi nhánh mình, `counterparty` = chi nhánh gửi, `transfer_slip_id` = `slip_id`, dòng chép đúng phiếu xuất; tồn tăng ngay | `NOT_FOUND` (không phải phiếu xuất điều chuyển gửi tới chi nhánh mình); `INVALID_STATE` (phiếu xuất chưa `POSTED`); `DUPLICATE` TK-07 (đã nhận) |
 | `GET /stock-slips?status=…` | → `StockSlip[]` của chi nhánh, mới nhất trước; `status?` lọc theo `SlipStatus` | |
 | `GET /stock-slips/{slip_id}` | → `StockSlip` | `NOT_FOUND`; `FORBIDDEN` K-01 |
 | `POST /stock-slips/{slip_id}/approve` | → `StockSlip` `POSTED`; tồn tăng (điều chỉnh tăng) hoặc giảm (phiếu xuất) | `NOT_FOUND`; `FORBIDDEN` K-01; `INVALID_STATE` (không ở `PENDING`, hoặc là phiếu nhập, xuất bán: không qua QL duyệt); `FORBIDDEN` K-02 (người duyệt là người lập) |
@@ -275,7 +283,7 @@ NVBH thao tác đơn người khác lập trả `FORBIDDEN` với `rule` của e
 | Endpoint | Request → response | Lỗi nghiệp vụ |
 | --- | --- | --- |
 | `POST /orders` | `OrderCreate` → `201 Order` `DRAFT` | `NOT_FOUND` (khách, sản phẩm); `VALIDATION_ERROR` BH-01 (trùng sản phẩm) |
-| `GET /orders?status=…` | → `Order[]` của chi nhánh, mới nhất trước; `status?` lọc theo `OrderStatus` | |
+| `GET /orders?status=…&shift_id=…` | → `Order[]` của chi nhánh, mới nhất trước; `status?` lọc theo `OrderStatus`; `shift_id?` (tính năng thêm 16/11/2026, trang Hóa đơn lọc theo ca) chỉ lấy đơn có giao dịch thu Thành công trong ca đó | |
 | `GET /orders/{order_id}` | → `Order` | `NOT_FOUND`; `FORBIDDEN` K-01 |
 | `PUT /orders/{order_id}/items` | `OrderItemsChange` → `Order` | như `POST /orders`; `FORBIDDEN` K-01, BH-03; `INVALID_STATE` BH-03 (không ở `DRAFT`) |
 | `POST /orders/{order_id}/confirm` | → `Order` `AWAITING_PAYMENT`, chép giá hiện hành vào `unit_price`, ghi `confirmed_at`; không giữ hàng | `FORBIDDEN` K-01, BH-03; `INVALID_STATE` BH-02 (không ở `DRAFT`); `RULE_VIOLATION` BH-02 (chi nhánh Ngừng hoạt động; sản phẩm Ngừng bán, `details.product_ids`); `INSUFFICIENT_STOCK` BH-02 (`details.lines` như TK-03). Lỗi thì đơn vẫn `DRAFT` |
@@ -295,7 +303,7 @@ khác trả `FORBIDDEN` `rule` = K-01.
 | `ShiftConfirm` | `confirm_reason` (bắt buộc khi HQ xác nhận ca thu ngân tự đóng, K-02; còn lại tùy chọn) |
 | `Shift` (response) | `shift_id`, `branch_id`, `cashier_id`, `status` (`ShiftStatus`), `opened_at`, `closed_at`, `settled_at`, `opening_cash`, `counted_cash`, `variance_reason`, `proxy_closed_by`, `witness_id`, `proxy_reason`, `confirmed_by`, `confirm_reason`; dẫn xuất (CA-02): `expected_cash`, `variance` (null khi chưa kiểm đếm) |
 | `ShiftMethodTotal` | `type` (`TxnType`), `method` (`TxnMethod`), `count`, `amount` |
-| `ShiftDetail` (response) | các trường của `Shift`; kết quả đối soát (CA-03): `cash_collected`, `cash_refunded` (Σ thu, hoàn tiền mặt Thành công), `electronic` (`ShiftMethodTotal[]`, giao dịch điện tử Thành công theo loại và phương thức), `failed`, `pending` (`Transaction[]`) |
+| `ShiftDetail` (response) | các trường của `Shift`; kết quả đối soát (CA-03): `cash_collected`, `cash_refunded` (Σ thu, hoàn tiền mặt Thành công), `total_collected`, `total_refunded` (Σ thu, hoàn Thành công mọi phương thức), `net_total` (= thu − hoàn; ba trường tổng ca là tính năng thêm 16/11/2026, không ảnh hưởng tiền mặt kỳ vọng), `electronic` (`ShiftMethodTotal[]`, giao dịch điện tử Thành công theo loại và phương thức), `failed`, `pending` (`Transaction[]`) |
 | `Transaction` (response) | `txn_id`, `order_id`, `return_id`, `shift_id`, `type`, `method`, `amount`, `status` (`TxnStatus`), `created_at`, `resolved_at`, `reference_code`, `cash_refund_approved_by`, `cash_refund_reason` |
 | `PaymentCreate` | `method` (`TxnMethod`) |
 | `CashConfirm` | `result` (`SUCCESS` = đã nhận đủ; `FAILED` = khách không đưa tiền) |
@@ -360,6 +368,7 @@ Mỗi báo cáo trả kèm phạm vi chi nhánh, kỳ lọc và thời điểm l
 | 5.2 | `GET /reports/products` | HQ, QL | DT-05 | 9 |
 | 5.3 | `GET /reports/stock` | HQ, QL, KHO | TK-01, TK-05 | 9 |
 | 5.5 | `GET /reports/staff-sales` | HQ, QL, BH (của mình) | DT-05 | 9 |
+| 5.1 (biểu đồ) | `GET /reports/revenue/series` | HQ, QL | DT-01 đến DT-03, DT-05 | thêm 16/11/2026 |
 
 Trường 5.4 (chốt ở vòng 8). Ảnh chụp tình trạng hiện tại nên không có `from`, `to`; luôn là chi nhánh của người gọi;
 tính lúc gọi, không lưu (quyết định 6 ở [plan.md](plan.md) mục 7). Chỉ xét sản phẩm Đang bán; "dưới ngưỡng" là
@@ -397,6 +406,19 @@ Trường 5.1, 5.2, 5.3, 5.5 (chốt ở vòng 9). Chỉ đọc, tính lúc gọ
 | `StockReport` (`GET /reports/stock?from&to&branch_id`) | đầu chung, `lines` (`StockReportLine[]`: mọi sản phẩm tại mỗi chi nhánh trong phạm vi, tại thời điểm lập), `movements` (`StockMovementLine[]`) |
 | `StaffSalesLine` | `branch_id`, `employee_id`, `full_name`, `order_count`, `gross_revenue`, `returns_value`, `net_revenue`, `cancelled_count`, `rank` (trong chi nhánh theo `net_revenue` giảm dần, bằng nhau thì theo `employee_id`), `previous_net_revenue` |
 | `StaffSalesReport` (`GET /reports/staff-sales?from&to&branch_id`) | đầu chung, `lines` (`StaffSalesLine[]`: mỗi cặp chi nhánh – người lập có phát sinh trong kỳ, sắp theo `branch_id`, `rank`). BH chỉ thấy dòng của mình ở mọi chi nhánh (hạng vẫn tính trong cả chi nhánh), `branch_id` bị bỏ qua |
+
+Biểu đồ doanh thu theo thời gian (tính năng thêm 16/11/2026, ngoài 27 chức năng; người dùng duyệt, dùng ở trang
+Doanh thu). `GET /reports/revenue/series?from&to&branch_id&group_id&period`: `from`, `to`, `branch_id` như trên;
+`period` (`SeriesPeriod`: `DAY`, `MONTH` mặc định, `QUARTER`, `YEAR`) chia kỳ theo giờ Việt Nam; `DAY` chỉ cho kỳ
+tối đa 92 ngày (quá thì `VALIDATION_ERROR`). `group_id` tùy chọn (không có nhóm: `NOT_FOUND`): chỉ tính dòng hàng của
+sản phẩm thuộc nhóm hiện tại trong D1 (DT-05), nên khi lọc nhóm, doanh thu là Σ dòng hàng của nhóm, không phải tổng
+đơn. Mốc thời gian như 5.1 (bán theo `completed_at`, trả theo `decided_at` của phiếu `APPROVED`). Không lọc nhóm
+thì Σ các mốc bằng `total` của `GET /reports/revenue` cùng kỳ, cùng chi nhánh.
+
+| Model | Trường |
+| --- | --- |
+| `RevenuePoint` | `period_start` (ngày đầu của mốc: ngày, ngày 1 của tháng, quý, năm; mốc đầu có thể trước `from`, số liệu vẫn chỉ trong kỳ), `order_count` (số đơn hoàn tất có ít nhất một dòng được tính), `gross_revenue`, `returns_value`, `net_revenue` |
+| `RevenueSeries` (response) | đầu chung, `period`, `group_id` (null = mọi nhóm), `points` (`RevenuePoint[]`, đủ mọi mốc trong kỳ theo thứ tự thời gian, mốc không phát sinh có số 0) |
 
 ## 5. Hàm giao giữa các module
 
@@ -447,8 +469,10 @@ Chốt ở vòng 6. Mã nguồn `infra/bank-mock/` (dùng lại fastapi, httpx, 
 | `BANK_URL` | api | Địa chỉ cổng, ví dụ `http://bank-mock:8001`. Để trống thì api không gọi cổng (giao dịch giữ `PENDING`) |
 | `BANK_KEY` | api, bank-mock | Khóa bí mật gửi trong header `X-Bank-Key` của callback; để trống thì api từ chối mọi callback |
 | `BANK_CALLBACK_URL` | bank-mock | Địa chỉ callback của api, ví dụ `http://api:8000/bank/callback` |
-| `BANK_MOCK_MODE` | bank-mock | Chế độ ban đầu: `SUCCESS`, `FAILED`, `SILENT`, `DUPLICATE` (mặc định `SUCCESS`) |
+| `BANK_MOCK_MODE` | bank-mock | Chế độ ban đầu: `SUCCESS`, `FAILED`, `SILENT`, `DUPLICATE` (mặc định `SILENT`, đổi 16/11/2026: thu ngân bấm kết quả ngân hàng báo trên giao diện, qua `reconcile`) |
 | `BANK_PORT` | compose | Cổng bank-mock mở ra máy host để gọi `PUT /mode` (mặc định 8001) |
 
 `bank-mock` có `POST /requests` (nhận yêu cầu từ api) và `PUT /mode` (thân `{"mode": …}`, đổi chế độ lúc demo).
 Mã tham chiếu cổng sinh là `REF-<txn_id>`; chế độ `DUPLICATE` gửi cùng một callback `SUCCESS` hai lần.
+Giao diện thu ngân bấm "Ngân hàng báo thành công" thì gửi `reconcile` với mã tự sinh `TS-<txn_id>` (demo không
+có ngân hàng thật; TT-02 vẫn bắt buộc mã, API không đổi); form tra soát ở chi tiết ca cho nhập mã, để trống thì tự sinh.

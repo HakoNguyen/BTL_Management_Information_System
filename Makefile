@@ -6,7 +6,7 @@ COMPOSE = docker compose --env-file $(ENV_FILE) -f infra/compose.yml
 S ?=
 N ?= 100
 
-.PHONY: up down reset ps logs lint test gen-api web-check check seed-demo
+.PHONY: up down reset ps logs lint test gen-api web-check check seed-demo seed-catalog
 
 # Dựng và chạy cả hệ thống: db, api, web
 up:
@@ -50,3 +50,7 @@ check: lint test gen-api web-check
 # Dữ liệu demo qua API (cần make up); in mật khẩu tạm một lần lúc cấp. Chạy lại được.
 seed-demo:
 	python scripts/seed-demo.py $(ENV_FILE)
+
+# Danh mục phụ kiện công nghệ mẫu và tồn từng chi nhánh (chạy sau seed-demo). Cấp lại mật khẩu NV kho.
+seed-catalog:
+	python scripts/seed-catalog.py $(ENV_FILE)

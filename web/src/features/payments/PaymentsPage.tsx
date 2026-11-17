@@ -6,10 +6,10 @@ import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { dateTime } from "../../format";
 import { TXN_METHOD_LABEL, optionsOf } from "../../labels";
-import { FormModal, moneyColumn, useWrite } from "../../ui";
+import { FormModal, moneyColumn } from "../../ui";
 import { stockProblems } from "../orders/stockProblems";
 import { useCurrentShift } from "../shifts/ShiftsPage";
-import { PendingTransactions, TXN_KEYS } from "./PendingTransactions";
+import { PendingTransactions, useStartTxn } from "./PendingTransactions";
 
 type Order = Schemas["Order"];
 
@@ -22,7 +22,7 @@ export function PaymentsPage() {
   const current = useCurrentShift();
   const [paying, setPaying] = useState<Order | null>(null);
   const [problem, setProblem] = useState<{ orderId: string; lines: string[] } | null>(null);
-  const pay = useWrite(
+  const pay = useStartTxn(
     (body: Schemas["PaymentCreate"]) =>
       unwrap(
         client.POST("/orders/{order_id}/payments", {
@@ -30,7 +30,6 @@ export function PaymentsPage() {
           body,
         }),
       ),
-    TXN_KEYS,
   );
   // Đơn đang có giao dịch Chờ kết quả thì không khởi tạo thu lần nữa (TT-02)
   const pendingOrders = new Set((current.data?.pending ?? []).map((txn) => txn.order_id));

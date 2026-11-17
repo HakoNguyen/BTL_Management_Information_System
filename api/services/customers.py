@@ -98,11 +98,20 @@ async def update_customer(
 async def search_customers(
     conn: asyncpg.Connection, phone: str | None, customer_id: str | None
 ) -> list[Customer]:
-    """Tra theo đúng một tiêu chí; không khớp thì trả rỗng ("Không tìm thấy")."""
-    if (phone is None) == (customer_id is None):
+    """Tra theo một tiêu chí; không khớp thì trả rỗng ("Không tìm thấy").
+    Không tiêu chí: cả danh sách khách có hồ sơ (tính năng thêm, docs/plan.md mục 7, quyết định 12).
+    """
+    if phone is not None and customer_id is not None:
         raise AppError(
-            ErrorCode.VALIDATION_ERROR, "Nhập đúng một tiêu chí: số điện thoại hoặc mã khách"
+            ErrorCode.VALIDATION_ERROR, "Chỉ nhập một tiêu chí: số điện thoại hoặc mã khách"
         )
+    if phone is None and customer_id is None:
+        # shortcut: trả hết một lần, không phân trang; thêm limit/offset khi khách rất đông
+        rows = await conn.fetch(
+            f"SELECT {_COLUMNS} FROM customers WHERE customer_id <> $1 ORDER BY customer_id DESC",
+            WALK_IN_CUSTOMER_ID,
+        )
+        return [Customer(**row) for row in rows]
     if customer_id is not None:
         _reject_walk_in(customer_id)
         row = await conn.fetchrow(

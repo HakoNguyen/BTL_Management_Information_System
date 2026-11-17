@@ -25,6 +25,7 @@ from common.constants import (
     Role,
     ShiftStatus,
     SlipStatus,
+    SlipType,
     TxnStatus,
     TxnType,
 )
@@ -124,6 +125,12 @@ async def deactivate_branch(conn: asyncpg.Connection, branch_id: str) -> Branch:
                                         WHERE t.return_id = r.return_id
                                           AND t.type = $7 AND t.status = $8))
                 AS unrefunded_return,
+              -- TK-07: xuất điều chuyển tới chi nhánh này chưa hủy và chưa được nhận
+              EXISTS (SELECT 1 FROM stock_slips k
+                      WHERE k.type = $9 AND k.counterparty = $1 AND k.status <> $10
+                        AND NOT EXISTS (SELECT 1 FROM stock_slips n
+                                        WHERE n.transfer_slip_id = k.slip_id))
+                AS incoming_transfer,
               (SELECT max(completed_at) FROM orders WHERE branch_id = $1) AS last_completed_at
             """,
             branch_id,
@@ -134,6 +141,8 @@ async def deactivate_branch(conn: asyncpg.Connection, branch_id: str) -> Branch:
             ReturnStatus.APPROVED,
             TxnType.REFUND,
             TxnStatus.SUCCESS,
+            SlipType.OUT_TRANSFER,
+            SlipStatus.CANCELLED,
         )
         last = check["last_completed_at"]
         unmet = [
@@ -145,6 +154,7 @@ async def deactivate_branch(conn: asyncpg.Connection, branch_id: str) -> Branch:
                 (check["pending_stock_slip"], "còn phiếu kho chờ xử lý"),
                 (check["pending_return"], "còn phiếu trả chờ duyệt"),
                 (check["unrefunded_return"], "còn phiếu trả Đã duyệt chưa hoàn tiền xong"),
+                (check["incoming_transfer"], "còn hàng điều chuyển đang chuyển đến"),
                 (
                     last is not None and clock.now() <= last + timedelta(days=RETURN_WINDOW_DAYS),
                     f"chưa quá {RETURN_WINDOW_DAYS} ngày kể từ đơn hoàn tất gần nhất",
@@ -324,6 +334,10 @@ async def assign_employee(
 # ---------------------------------------------------------------- 6.3 Tài khoản
 
 
+def _temporary_password() -> str:
+    return secrets.token_urlsafe(12)  # 16 ký tự; trả một lần để trụ sở bàn giao
+
+
 async def issue_account(conn: asyncpg.Connection, employee_id: str, username: str) -> AccountIssued:
     """NV-03: cấp một lần; tên đăng nhập duy nhất, kể cả với người đã nghỉ (không tái sử dụng)."""
     async with conn.transaction():
@@ -331,7 +345,7 @@ async def issue_account(conn: asyncpg.Connection, employee_id: str, username: st
         _require_working(employee, rule="NV-03")
         if employee["username"] is not None:
             raise AppError(ErrorCode.INVALID_STATE, "Nhân viên đã được cấp tài khoản", rule="NV-03")
-        password = secrets.token_urlsafe(12)  # 16 ký tự; trả một lần để trụ sở bàn giao
+        password = _temporary_password()
         try:
             result = await conn.execute(
                 "UPDATE employees SET username = $2, password_hash = $3, account_status = $4"
@@ -352,6 +366,37 @@ async def issue_account(conn: asyncpg.Connection, employee_id: str, username: st
         username=username,
         temporary_password=password,
         account_status=AccountStatus.ACTIVE,
+    )
+
+
+async def reset_password(conn: asyncpg.Connection, employee_id: str) -> AccountIssued:
+    """6.3: nhân viên quên mật khẩu thì trụ sở cấp lại mật khẩu tạm (quyết định 5, plan.md mục 7).
+
+    Giữ nguyên tên đăng nhập và trạng thái tài khoản: tài khoản Bị khóa vẫn khóa.
+    """
+    async with conn.transaction():
+        employee = await _lock_employee(conn, employee_id)
+        _require_working(employee, rule="NV-03")
+        if employee["username"] is None:
+            raise AppError(
+                ErrorCode.INVALID_STATE, "Nhân viên chưa được cấp tài khoản", rule="NV-03"
+            )
+        password = _temporary_password()
+        result = await conn.execute(
+            "UPDATE employees SET password_hash = $2"
+            " WHERE employee_id = $1 AND username IS NOT NULL",
+            employee_id,
+            hash_password(password),
+        )
+        if result != "UPDATE 1":
+            raise AppError(
+                ErrorCode.INVALID_STATE, "Nhân viên chưa được cấp tài khoản", rule="NV-03"
+            )
+    return AccountIssued(
+        employee_id=employee_id,
+        username=employee["username"],
+        temporary_password=password,
+        account_status=employee["account_status"],
     )
 
 

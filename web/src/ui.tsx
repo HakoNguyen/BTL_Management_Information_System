@@ -1,8 +1,63 @@
 // Mẫu dùng chung cho các trang: ghi dữ liệu qua useMutation và hộp thoại biểu mẫu.
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Form, Modal, message } from "antd";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, DatePicker, Form, Modal, Select, message } from "antd";
 import { useState, type ReactNode } from "react";
+import { client, unwrap, type Schemas } from "./api/client";
+import type { DateRange } from "./dateRange";
 import { money } from "./format";
+
+/** Màu chủ đạo (xanh dương) và nền thanh bên, dùng ở theme và trang đăng nhập. */
+export const BRAND = "#1677ff";
+export const NAVY = "#0b2e5c";
+
+type StatusCode =
+  | Schemas["BranchStatus"]
+  | Schemas["EmployeeStatus"]
+  | Schemas["AccountStatus"]
+  | Schemas["ProductStatus"]
+  | Schemas["LevelStatus"]
+  | Schemas["TxnStatus"]
+  | Schemas["ShiftStatus"]
+  | Schemas["SlipStatus"]
+  | Schemas["OrderStatus"]
+  | Schemas["ReturnStatus"]
+  | Schemas["RefundStatus"];
+
+const POSITIVE = "blue";
+const NEGATIVE = "volcano";
+const WAITING = "gold";
+const NEUTRAL = "default";
+
+/** Màu tag trạng thái: tích cực xanh, tiêu cực đỏ cam, chờ người khác xử lý vàng, còn lại xám. */
+export const STATUS_COLOR: Record<StatusCode, string> = {
+  ACTIVE: POSITIVE,
+  INACTIVE: NEGATIVE,
+  WORKING: POSITIVE,
+  LEFT: NEGATIVE,
+  LOCKED: NEGATIVE,
+  ON_SALE: POSITIVE,
+  DISCONTINUED: NEGATIVE,
+  OK: POSITIVE,
+  BELOW_MIN: NEGATIVE,
+  NOT_SET: NEUTRAL,
+  SUCCESS: POSITIVE,
+  FAILED: NEGATIVE,
+  PENDING: WAITING,
+  OPEN: NEUTRAL,
+  AWAITING_CONFIRMATION: WAITING,
+  SETTLED: POSITIVE,
+  POSTED: POSITIVE,
+  CANCELLED: NEGATIVE,
+  DRAFT: NEUTRAL,
+  AWAITING_PAYMENT: WAITING,
+  COMPLETED: POSITIVE,
+  PARTIALLY_RETURNED: WAITING,
+  FULLY_RETURNED: NEGATIVE,
+  APPROVED: POSITIVE,
+  REJECTED: NEGATIVE,
+  NOT_REFUNDED: NEGATIVE,
+  REFUNDED: POSITIVE,
+};
 
 /** Ghi dữ liệu: báo kết quả (lỗi hiện đúng thông báo của API), rồi tải lại các khóa trong `keys`. */
 export function useWrite<V, R>(fn: (values: V) => Promise<R>, keys: string[]) {
@@ -61,6 +116,63 @@ export function FormModal<T extends object>(props: FormModalProps<T>) {
         {children}
       </Form>
     </Modal>
+  );
+}
+
+/** Ô lọc chi nhánh cho danh sách nhiều chi nhánh (Trụ sở); để trống = mọi chi nhánh. */
+export function BranchFilter({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (branchId?: string) => void;
+}) {
+  const branches = useQuery({ queryKey: ["branches"], queryFn: () => unwrap(client.GET("/branches")) });
+  return (
+    <Select
+      allowClear
+      placeholder="Mọi chi nhánh"
+      style={{ minWidth: 170 }}
+      value={value}
+      onChange={onChange}
+      options={(branches.data ?? []).map((b) => ({ value: b.branch_id, label: `${b.branch_id} – ${b.name}` }))}
+    />
+  );
+}
+
+/** Nút bỏ một dòng trong danh sách dòng của biểu mẫu (dòng hàng đơn, phiếu kho, phiếu trả…). */
+export function RemoveButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button type="text" danger title="Bỏ dòng" aria-label="Bỏ dòng" onClick={onClick}>
+      ✕
+    </Button>
+  );
+}
+
+/** Nút thêm dòng, viền nét đứt dài hết hàng, đặt dưới danh sách dòng của biểu mẫu. */
+export function AddButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <Button type="dashed" block onClick={onClick}>
+      {children}
+    </Button>
+  );
+}
+
+/** Ô chọn khoảng ngày để lọc danh sách chứng từ; xóa trống = mọi ngày. */
+export function DateRangeFilter({ onChange }: { onChange: (range: DateRange) => void }) {
+  return (
+    <DatePicker.RangePicker
+      allowClear
+      format="DD/MM/YYYY"
+      placeholder={["Từ ngày", "Đến ngày"]}
+      onChange={(values) =>
+        onChange(
+          values?.[0] && values[1]
+            ? [values[0].format("YYYY-MM-DD"), values[1].format("YYYY-MM-DD")]
+            : null,
+        )
+      }
+    />
   );
 }
 

@@ -18,6 +18,8 @@ from common.constants import (
     OrderStatus,
     ProductStatus,
     Role,
+    TxnStatus,
+    TxnType,
 )
 from common.errors import AppError
 from common.models import CurrentUser, Order, OrderCreate, OrderItem, OrderItemInput
@@ -73,13 +75,22 @@ async def _owned(
 
 
 async def list_orders(
-    conn: asyncpg.Connection, user: CurrentUser, status: OrderStatus | None
+    conn: asyncpg.Connection,
+    user: CurrentUser,
+    status: OrderStatus | None,
+    shift_id: str | None = None,
 ) -> list[Order]:
+    """`shift_id`: chỉ đơn có giao dịch thu Thành công trong ca đó (tính năng thêm, lọc hóa đơn)."""
     rows = await conn.fetch(
         f"{_SELECT} WHERE o.branch_id = $1 AND ($2::text IS NULL OR o.status = $2)"
+        " AND ($3::text IS NULL OR EXISTS (SELECT 1 FROM transactions t"
+        " WHERE t.order_id = o.order_id AND t.shift_id = $3 AND t.type = $4 AND t.status = $5))"
         " ORDER BY o.created_at DESC, o.order_id DESC",
         user.branch_id,
         status,
+        shift_id,
+        TxnType.COLLECT,
+        TxnStatus.SUCCESS,
     )
     return await _load(conn, rows)
 

@@ -9,12 +9,13 @@ from deps import Conn, require_role
 from fastapi import APIRouter, Depends, Query
 from services import reports
 
-from common.constants import RankBy, Role
+from common.constants import RankBy, Role, SeriesPeriod
 from common.models import (
     CurrentUser,
     LowStockReport,
     ProductSalesReport,
     RevenueReport,
+    RevenueSeries,
     StaffSalesReport,
     StockReport,
 )
@@ -38,6 +39,19 @@ async def revenue(
     user: SalesViewer, conn: Conn, from_: From, to: To, branch_id: str | None = None
 ) -> RevenueReport:
     return await reports.revenue(conn, user, from_, to, branch_id)
+
+
+@router.get("/reports/revenue/series")
+async def revenue_series(
+    user: SalesViewer,
+    conn: Conn,
+    from_: From,
+    to: To,
+    branch_id: str | None = None,
+    group_id: str | None = None,
+    period: SeriesPeriod = SeriesPeriod.MONTH,
+) -> RevenueSeries:
+    return await reports.revenue_series(conn, user, from_, to, branch_id, group_id, period)
 
 
 @router.get("/reports/products")

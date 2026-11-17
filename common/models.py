@@ -23,6 +23,7 @@ from common.constants import (
     ReplenishType,
     ReturnStatus,
     Role,
+    SeriesPeriod,
     ShiftStatus,
     SlipStatus,
     SlipType,
@@ -247,6 +248,7 @@ class StockSlip(BaseModel):
     order_id: str | None
     return_id: str | None
     adjusts_slip_id: str | None
+    transfer_slip_id: str | None  # chỉ Nhập điều chuyển: phiếu xuất điều chuyển gốc (TK-07)
     approved_by: str | None  # người quyết định, cả khi từ chối
     decision_reason: str | None
     finalized_at: datetime | None
@@ -262,10 +264,15 @@ class InboundSlipCreate(BaseModel):
 
 class StockSlipCreate(BaseModel):
     type: Literal[
-        SlipType.ADJUST_UP, SlipType.OUT_DISPOSAL, SlipType.OUT_TO_WAREHOUSE, SlipType.ADJUST_DOWN
+        SlipType.ADJUST_UP,
+        SlipType.OUT_DISPOSAL,
+        SlipType.OUT_TO_WAREHOUSE,
+        SlipType.ADJUST_DOWN,
+        SlipType.OUT_TRANSFER,
     ]
     reason: NonBlank
     adjusts_slip_id: str | None = None
+    counterparty: NonBlank | None = None  # mã chi nhánh nhận, chỉ Xuất điều chuyển (TK-07)
     items: list[StockSlipItem] = Field(min_length=1)
 
 
@@ -407,6 +414,10 @@ class ShiftDetail(Shift):
 
     cash_collected: int
     cash_refunded: int
+    # Tổng ca (tính năng thêm): Thành công, mọi phương thức; net_total = thu − hoàn
+    total_collected: int
+    total_refunded: int
+    net_total: int
     electronic: list[ShiftMethodTotal]
     failed: list[Transaction]
     pending: list[Transaction]
@@ -562,6 +573,22 @@ class RevenueReport(ReportHeader):
     branches: list[RevenueSummary]
     total: RevenueSummary
     previous: RevenueSummary
+
+
+class RevenuePoint(BaseModel):
+    period_start: date  # ngày đầu của mốc
+    order_count: int
+    gross_revenue: int
+    returns_value: int
+    net_revenue: int  # có thể âm
+
+
+class RevenueSeries(ReportHeader):
+    """Doanh thu theo thời gian cho biểu đồ (tính năng thêm, docs/api.md nhóm 5)."""
+
+    period: SeriesPeriod
+    group_id: str | None  # null = mọi nhóm
+    points: list[RevenuePoint]
 
 
 class ProductSalesLine(BaseModel):

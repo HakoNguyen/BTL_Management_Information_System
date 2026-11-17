@@ -1,19 +1,40 @@
 // 6.1 Hồ sơ nhân viên, 6.2 phân công, 6.3 tài khoản (Trụ sở). Quy tắc NV-01..NV-04 do API kiểm tra.
 import { useQuery } from "@tanstack/react-query";
-import { Button, Card, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  Modal,
+  Popconfirm,
+  Segmented,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
 import { useState } from "react";
-import { client, unwrap, type Schemas } from "../../api/client";
+import { client, unwrap, type Role, type Schemas } from "../../api/client";
 import {
   ACCOUNT_STATUS_LABEL,
   EMPLOYEE_STATUS_LABEL,
   ROLE_LABEL,
   optionsOf,
 } from "../../labels";
-import { FormModal, useWrite } from "../../ui";
+import { BranchFilter, FormModal, STATUS_COLOR, useWrite } from "../../ui";
 
 type Employee = Schemas["Employee"];
 type Path = { params: { path: { employee_id: string } } };
 type Dialog = "create" | "edit" | "assign" | "account";
+
+const ROLE_COLOR: Record<Role, string> = {
+  HQ: "magenta",
+  MANAGER: "gold",
+  SALES: "blue",
+  CASHIER: "cyan",
+  WAREHOUSE: "orange",
+};
 
 const path = (id: string): Path => ({ params: { path: { employee_id: id } } });
 const KEYS = ["employees"];
@@ -27,6 +48,8 @@ export function EmployeesPage() {
     queryKey: ["branches"],
     queryFn: () => unwrap(client.GET("/branches")),
   });
+  const [role, setRole] = useState<Role | "ALL">("ALL");
+  const [branchId, setBranchId] = useState<string>();
   const [dialog, setDialog] = useState<{ kind: Dialog; employee?: Employee } | null>(null);
   const close = () => setDialog(null);
   const id = dialog?.employee?.employee_id ?? "";
@@ -49,6 +72,11 @@ export function EmployeesPage() {
     (body: Schemas["AccountCreate"]) =>
       unwrap(client.POST("/employees/{employee_id}/account", { ...path(id), body })),
     KEYS,
+  );
+  const resetPassword = useWrite(
+    (employeeId: string) =>
+      unwrap(client.POST("/employees/{employee_id}/account/reset-password", path(employeeId))),
+    [], // danh sách nhân viên không đổi
   );
   const lock = useWrite(
     (employeeId: string) =>
@@ -94,11 +122,10 @@ export function EmployeesPage() {
     </>
   );
 
-  const issueAccount = async (body: Schemas["AccountCreate"]) => {
-    const issued = await issue.mutateAsync(body);
-    // Mật khẩu tạm chỉ trả về một lần (6.3): hiện ngay để trụ sở bàn giao
+  // Mật khẩu tạm chỉ trả về một lần (6.3): hiện ngay để trụ sở bàn giao
+  const showPassword = (title: string, issued: Schemas["AccountIssued"]) =>
     Modal.success({
-      title: "Đã cấp tài khoản",
+      title,
       content: (
         <>
           <p>Tên đăng nhập: {issued.username}</p>
@@ -109,23 +136,44 @@ export function EmployeesPage() {
         </>
       ),
     });
-  };
+  const issueAccount = async (body: Schemas["AccountCreate"]) =>
+    showPassword("Đã cấp tài khoản", await issue.mutateAsync(body));
+  const reissuePassword = (employeeId: string) =>
+    resetPassword.mutate(employeeId, {
+      onSuccess: (issued) => showPassword("Đã cấp lại mật khẩu tạm", issued),
+    });
 
   return (
     <Card
       title="Nhân viên"
       extra={<Button onClick={() => setDialog({ kind: "create" })}>Thêm nhân viên</Button>}
     >
+      <Space wrap style={{ marginBottom: 16 }}>
+        <Segmented<Role | "ALL">
+          value={role}
+          onChange={setRole}
+          options={[{ value: "ALL", label: "Tất cả" }, ...optionsOf(ROLE_LABEL)]}
+        />
+        <BranchFilter value={branchId} onChange={setBranchId} />
+      </Space>
       <Table<Employee>
+        key={`${role}-${branchId}`} // đổi bộ lọc thì quay về trang 1
         rowKey="employee_id"
         loading={employees.isPending}
-        dataSource={employees.data}
+        dataSource={employees.data?.filter(
+          (e) => (role === "ALL" || e.role === role) && (!branchId || e.branch_id === branchId),
+        )}
+        pagination={{ pageSize: 5, simple: true, hideOnSinglePage: true }}
         scroll={{ x: true }}
         columns={[
           { title: "Mã", dataIndex: "employee_id" },
           { title: "Họ tên", dataIndex: "full_name" },
           { title: "Điện thoại", dataIndex: "phone" },
-          { title: "Vai trò", dataIndex: "role", render: (role: Employee["role"]) => ROLE_LABEL[role] },
+          {
+            title: "Vai trò",
+            dataIndex: "role",
+            render: (role: Role) => <Tag color={ROLE_COLOR[role]}>{ROLE_LABEL[role]}</Tag>,
+          },
           {
             title: "Chi nhánh",
             dataIndex: "branch_id",
@@ -135,7 +183,9 @@ export function EmployeesPage() {
           {
             title: "Trạng thái",
             dataIndex: "status",
-            render: (status: Employee["status"]) => EMPLOYEE_STATUS_LABEL[status],
+            render: (status: Employee["status"]) => (
+              <Tag color={STATUS_COLOR[status]}>{EMPLOYEE_STATUS_LABEL[status]}</Tag>
+            ),
           },
           {
             title: "Tài khoản",
@@ -145,7 +195,7 @@ export function EmployeesPage() {
               ) : (
                 <Space>
                   {employee.username}
-                  <Tag color={employee.account_status === "ACTIVE" ? "green" : "red"}>
+                  <Tag color={STATUS_COLOR[employee.account_status]}>
                     {ACCOUNT_STATUS_LABEL[employee.account_status]}
                   </Tag>
                 </Space>
@@ -183,6 +233,15 @@ export function EmployeesPage() {
                   {employee.account_status === "LOCKED" && (
                     <Popconfirm title="Mở khóa tài khoản?" onConfirm={() => unlock.mutate(target)}>
                       <Button size="small">Mở khóa</Button>
+                    </Popconfirm>
+                  )}
+                  {employee.account_status !== null && (
+                    <Popconfirm
+                      title="Cấp lại mật khẩu tạm?"
+                      description="Mật khẩu cũ hết hiệu lực ngay."
+                      onConfirm={() => reissuePassword(target)}
+                    >
+                      <Button size="small">Cấp lại mật khẩu</Button>
                     </Popconfirm>
                   )}
                   <Popconfirm

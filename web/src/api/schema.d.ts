@@ -228,6 +228,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/employees/{employee_id}/account/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Password */
+        post: operations["reset_password_employees__employee_id__account_reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/employees/{employee_id}/account/unlock": {
         parameters: {
             query?: never;
@@ -659,6 +676,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reports/revenue/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Revenue Series */
+        get: operations["revenue_series_reports_revenue_series_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reports/staff-sales": {
         parameters: {
             query?: never;
@@ -934,6 +968,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/stock-slips/incoming-transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Incoming Transfers */
+        get: operations["list_incoming_transfers_stock_slips_incoming_transfers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stock-slips/{slip_id}": {
         parameters: {
             query?: never;
@@ -962,6 +1013,23 @@ export interface paths {
         put?: never;
         /** Approve Slip */
         post: operations["approve_slip_stock_slips__slip_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/stock-slips/{slip_id}/receive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive Transfer */
+        post: operations["receive_transfer_stock_slips__slip_id__receive_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1762,6 +1830,22 @@ export interface components {
          * @enum {string}
          */
         ReturnStatus: "PENDING" | "APPROVED" | "REJECTED";
+        /** RevenuePoint */
+        RevenuePoint: {
+            /** Gross Revenue */
+            gross_revenue: number;
+            /** Net Revenue */
+            net_revenue: number;
+            /** Order Count */
+            order_count: number;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Returns Value */
+            returns_value: number;
+        };
         /** RevenueReport */
         RevenueReport: {
             /** Branch Id */
@@ -1785,6 +1869,34 @@ export interface components {
              */
             to_date: string;
             total: components["schemas"]["RevenueSummary"];
+        };
+        /**
+         * RevenueSeries
+         * @description Doanh thu theo thời gian cho biểu đồ (tính năng thêm, docs/api.md nhóm 5).
+         */
+        RevenueSeries: {
+            /** Branch Id */
+            branch_id: string | null;
+            /**
+             * From Date
+             * Format: date
+             */
+            from_date: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Group Id */
+            group_id: string | null;
+            period: components["schemas"]["SeriesPeriod"];
+            /** Points */
+            points: components["schemas"]["RevenuePoint"][];
+            /**
+             * To Date
+             * Format: date
+             */
+            to_date: string;
         };
         /** RevenueSummary */
         RevenueSummary: {
@@ -1818,6 +1930,12 @@ export interface components {
          * @enum {string}
          */
         Role: "HQ" | "MANAGER" | "SALES" | "CASHIER" | "WAREHOUSE";
+        /**
+         * SeriesPeriod
+         * @description Độ chi tiết của biểu đồ doanh thu theo thời gian (tính năng thêm, docs/api.md nhóm 5).
+         * @enum {string}
+         */
+        SeriesPeriod: "DAY" | "MONTH" | "QUARTER" | "YEAR";
         /** Shift */
         Shift: {
             /** Branch Id */
@@ -1896,6 +2014,8 @@ export interface components {
             expected_cash: number;
             /** Failed */
             failed: components["schemas"]["Transaction"][];
+            /** Net Total */
+            net_total: number;
             /**
              * Opened At
              * Format: date-time
@@ -1914,6 +2034,10 @@ export interface components {
             /** Shift Id */
             shift_id: string;
             status: components["schemas"]["ShiftStatus"];
+            /** Total Collected */
+            total_collected: number;
+            /** Total Refunded */
+            total_refunded: number;
             /** Variance */
             variance: number | null;
             /** Variance Reason */
@@ -1960,7 +2084,7 @@ export interface components {
          * SlipType
          * @enum {string}
          */
-        SlipType: "IN_WAREHOUSE" | "IN_SUPPLIER" | "IN_RETURN" | "ADJUST_UP" | "OUT_SALE" | "OUT_DISPOSAL" | "OUT_TO_WAREHOUSE" | "ADJUST_DOWN";
+        SlipType: "IN_WAREHOUSE" | "IN_SUPPLIER" | "IN_RETURN" | "ADJUST_UP" | "OUT_SALE" | "OUT_DISPOSAL" | "OUT_TO_WAREHOUSE" | "ADJUST_DOWN" | "OUT_TRANSFER" | "IN_TRANSFER";
         /** SlowMovingLine */
         SlowMovingLine: {
             /** Branch Id */
@@ -2114,12 +2238,16 @@ export interface components {
             /** Slip Id */
             slip_id: string;
             status: components["schemas"]["SlipStatus"];
+            /** Transfer Slip Id */
+            transfer_slip_id: string | null;
             type: components["schemas"]["SlipType"];
         };
         /** StockSlipCreate */
         StockSlipCreate: {
             /** Adjusts Slip Id */
             adjusts_slip_id?: string | null;
+            /** Counterparty */
+            counterparty?: string | null;
             /** Items */
             items: components["schemas"]["StockSlipItem"][];
             /** Reason */
@@ -2128,7 +2256,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "ADJUST_UP" | "OUT_DISPOSAL" | "OUT_TO_WAREHOUSE" | "ADJUST_DOWN";
+            type: "ADJUST_UP" | "OUT_DISPOSAL" | "OUT_TO_WAREHOUSE" | "ADJUST_DOWN" | "OUT_TRANSFER";
         };
         /** StockSlipItem */
         StockSlipItem: {
@@ -2711,6 +2839,37 @@ export interface operations {
             };
         };
     };
+    reset_password_employees__employee_id__account_reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                employee_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountIssued"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     unlock_account_employees__employee_id__account_unlock_post: {
         parameters: {
             query?: never;
@@ -2863,6 +3022,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: components["schemas"]["OrderStatus"] | null;
+                shift_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -3666,6 +3826,41 @@ export interface operations {
             };
         };
     };
+    revenue_series_reports_revenue_series_get: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                branch_id?: string | null;
+                group_id?: string | null;
+                period?: components["schemas"]["SeriesPeriod"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevenueSeries"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     staff_sales_reports_staff_sales_get: {
         parameters: {
             query: {
@@ -4266,6 +4461,26 @@ export interface operations {
             };
         };
     };
+    list_incoming_transfers_stock_slips_incoming_transfers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSlip"][];
+                };
+            };
+        };
+    };
     get_slip_stock_slips__slip_id__get: {
         parameters: {
             query?: never;
@@ -4310,6 +4525,37 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSlip"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    receive_transfer_stock_slips__slip_id__receive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

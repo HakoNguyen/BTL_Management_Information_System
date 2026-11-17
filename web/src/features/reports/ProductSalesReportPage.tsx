@@ -1,10 +1,11 @@
 // 5.2 Sản phẩm bán: xếp hạng, theo nhóm, hàng chậm bán (DT-05).
 import { useQuery } from "@tanstack/react-query";
-import { Card, Form, Select, Table, Typography } from "antd";
+import { Card, Col, Form, Row, Select, Table, Typography } from "antd";
 import { useState } from "react";
 import { client, unwrap, type Schemas } from "../../api/client";
 import { RANK_BY_LABEL, optionsOf } from "../../labels";
 import { moneyColumn } from "../../ui";
+import { BarChartCard, CHART_COLOR } from "./BarChartCard";
 import { ReportFilter, ReportHeader, type ReportParams } from "./ReportFilter";
 
 type Params = ReportParams & { rank_by: Schemas["RankBy"] };
@@ -17,6 +18,10 @@ export function ProductSalesReportPage() {
     enabled: params !== null,
   });
   const data = report.data;
+  // Biểu đồ vẽ đúng tiêu chí xếp hạng đang chọn
+  const byValue = data?.rank_by === "VALUE";
+  const metric = byValue ? "net_value" : "net_qty";
+  const metricName = byValue ? "Giá trị thuần" : "SL thuần";
 
   return (
     <Card title="Báo cáo sản phẩm bán">
@@ -28,6 +33,27 @@ export function ProductSalesReportPage() {
       <ReportHeader report={data} error={report.error} />
       {data && (
         <>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Col xs={24} xl={12}>
+              <BarChartCard
+                title={`Top 10 sản phẩm (${RANK_BY_LABEL[data.rank_by]})`}
+                // API đã sắp theo hạng; 10 dòng đầu là top 10 (5.2)
+                data={data.products.slice(0, 10)}
+                label="name"
+                money={byValue}
+                series={[{ key: metric, name: metricName, color: CHART_COLOR.gross }]}
+              />
+            </Col>
+            <Col xs={24} xl={12}>
+              <BarChartCard
+                title="Theo nhóm sản phẩm"
+                data={data.groups}
+                label="name"
+                money={byValue}
+                series={[{ key: metric, name: metricName, color: CHART_COLOR.net }]}
+              />
+            </Col>
+          </Row>
           <Typography.Title level={5}>Sản phẩm ({RANK_BY_LABEL[data.rank_by]})</Typography.Title>
           <Table<Schemas["ProductSalesLine"]>
             rowKey="product_id"

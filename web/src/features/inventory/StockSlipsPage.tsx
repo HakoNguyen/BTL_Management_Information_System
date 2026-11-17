@@ -1,5 +1,5 @@
 // 4.2 Ghi nhập theo phiếu giao (TK-02, ghi nhận ngay); 4.2/4.3 phiếu điều chỉnh, xuất hủy, xuất trả kho tổng
-// lập ở Chờ xử lý, chờ QL duyệt hoặc từ chối kèm lý do (TK-03, TK-04, K-02, K-03). Trụ sở không duyệt thay
+// và 4.6 xuất điều chuyển lập ở Chờ xử lý, chờ QL duyệt hoặc từ chối kèm lý do (TK-03, TK-04, K-02, K-03). Trụ sở không duyệt thay
 // phiếu kho. Lỗi do API kiểm tra; giao diện không tự tính tồn khả dụng.
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Card, Form, Input, Popconfirm, Select, Space, Table, Tag } from "antd";
@@ -8,7 +8,7 @@ import { client, unwrap, type Schemas } from "../../api/client";
 import { useAuth } from "../../auth";
 import { dateTime } from "../../format";
 import { SLIP_STATUS_LABEL, SLIP_TYPE_LABEL, optionsOf } from "../../labels";
-import { FormModal, useWrite } from "../../ui";
+import { FormModal, STATUS_COLOR, useWrite } from "../../ui";
 import { ItemsField } from "../orders/ItemsField";
 import { stockProblems } from "../orders/stockProblems";
 
@@ -24,6 +24,7 @@ const SLIP_TYPES = typeOptions<SlipCreate["type"]>([
   "ADJUST_DOWN",
   "OUT_DISPOSAL",
   "OUT_TO_WAREHOUSE",
+  "OUT_TRANSFER",
 ]);
 const ADJUST_TYPES: Slip["type"][] = ["ADJUST_UP", "ADJUST_DOWN"];
 // Chỉ phiếu điều chỉnh, xuất khác qua QL duyệt; phiếu nhập, xuất bán không (TK-03)
@@ -31,11 +32,6 @@ const APPROVABLE = SLIP_TYPES.map((option) => option.value as Slip["type"]);
 const slipPath = (id: string) => ({ params: { path: { slip_id: id } } });
 // Phiếu xuất giữ hàng nên làm đổi tồn khả dụng; phiếu nhập đổi tồn ngay
 const KEYS = ["stock-slips", "stock", "reports"];
-const STATUS_COLOR: Record<Slip["status"], string> = {
-  PENDING: "gold",
-  POSTED: "green",
-  CANCELLED: "default",
-};
 
 export function StockSlipsPage() {
   const isManager = useAuth().user?.role === "MANAGER";
@@ -54,6 +50,12 @@ export function StockSlipsPage() {
     queryKey: ["products"],
     queryFn: () => unwrap(client.GET("/products")),
   });
+  // 4.6: chi nhánh nhận của phiếu xuất điều chuyển; API kiểm tra Hoạt động và khác chi nhánh mình (TK-07)
+  const branches = useQuery({
+    queryKey: ["branches"],
+    queryFn: () => unwrap(client.GET("/branches")),
+  });
+  const myBranch = useAuth().user?.branch_id;
   const names = new Map((products.data ?? []).map((product) => [product.product_id, product.name]));
   const productLabel = (id: string) => (names.has(id) ? `${id} – ${names.get(id)}` : id);
 
@@ -157,9 +159,14 @@ export function StockSlipsPage() {
           },
           { title: "Lý do", dataIndex: "reason" },
           {
-            title: "Phiếu giao",
+            title: "Phiếu giao, chi nhánh",
+            // Điều chuyển: counterparty là chi nhánh nhận (xuất) hoặc chi nhánh gửi (nhập)
             render: (_, slip) =>
-              slip.delivery_no && `${slip.counterparty} – số ${slip.delivery_no}`,
+              slip.delivery_no
+                ? `${slip.counterparty} – số ${slip.delivery_no}`
+                : slip.type === "OUT_TRANSFER"
+                  ? `Tới ${slip.counterparty}`
+                  : slip.type === "IN_TRANSFER" && `Từ ${slip.counterparty} (${slip.transfer_slip_id})`,
           },
           { title: "Điều chỉnh phiếu", dataIndex: "adjusts_slip_id" },
           { title: "Người lập", dataIndex: "created_by" },
@@ -261,6 +268,28 @@ export function StockSlipsPage() {
           </Form.Item>
           <Form.Item label="Lý do" name="reason" rules={[{ required: true, whitespace: true }]}>
             <Input.TextArea />
+          </Form.Item>
+          <Form.Item noStyle dependencies={["type"]}>
+            {({ getFieldValue }) =>
+              getFieldValue("type") === "OUT_TRANSFER" && (
+                // preserve={false}: đổi sang loại khác thì bỏ chi nhánh nhận, tránh VALIDATION_ERROR TK-07
+                <Form.Item
+                  label="Chi nhánh nhận"
+                  name="counterparty"
+                  preserve={false}
+                  rules={[{ required: true }]}
+                >
+                  <Select
+                    options={(branches.data ?? [])
+                      .filter((branch) => branch.status === "ACTIVE" && branch.branch_id !== myBranch)
+                      .map((branch) => ({
+                        value: branch.branch_id,
+                        label: `${branch.branch_id} – ${branch.name}`,
+                      }))}
+                  />
+                </Form.Item>
+              )
+            }
           </Form.Item>
           <Form.Item noStyle dependencies={["type"]}>
             {({ getFieldValue }) =>

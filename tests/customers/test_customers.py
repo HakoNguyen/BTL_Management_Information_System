@@ -221,13 +221,26 @@ async def test_search_not_found(client: httpx.AsyncClient, sales: dict[str, str]
     assert by_phone.json() == by_code.json() == []
 
 
-@pytest.mark.parametrize("params", [{}, {"phone": "0901234567", "customer_id": "KH000001"}])
-async def test_search_needs_exactly_one_criterion(
-    client: httpx.AsyncClient, sales: dict[str, str], params: dict[str, str]
+async def test_search_rejects_both_criteria(
+    client: httpx.AsyncClient, sales: dict[str, str]
 ) -> None:
+    params = {"phone": "0901234567", "customer_id": "KH000001"}
     response = await client.get("/customers", params=params, headers=sales)
     assert response.status_code == 400
     assert response.json()["error_code"] == ErrorCode.VALIDATION_ERROR
+
+
+async def test_list_all_customers(client: httpx.AsyncClient, sales: dict[str, str]) -> None:
+    """Không tham số: cả danh sách khách có hồ sơ, mới nhất trước, không gồm KHLE (KH-02)."""
+    first = (await client.post("/customers", json=AN, headers=sales)).json()
+    second = (
+        await client.post(
+            "/customers", json={"full_name": "Trần Bình", "phone": "0912345678"}, headers=sales
+        )
+    ).json()
+    response = await client.get("/customers", headers=sales)
+    assert response.status_code == 200
+    assert response.json() == [second, first]
 
 
 async def test_search_walk_in_rejected(client: httpx.AsyncClient, sales: dict[str, str]) -> None:
@@ -271,6 +284,7 @@ async def test_only_sales_allowed(
         ),
         await client.patch("/customers/KH000001", json={"address": "X"}, headers=headers),
         await client.get("/customers", params={"customer_id": "KH000001"}, headers=headers),
+        await client.get("/customers", headers=headers),
     ):
         assert response.status_code == 403
         assert response.json()["error_code"] == ErrorCode.FORBIDDEN

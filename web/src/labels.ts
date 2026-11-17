@@ -41,6 +41,13 @@ export const RANK_BY_LABEL: Record<Schemas["RankBy"], string> = {
   VALUE: "Theo giá trị",
 };
 
+export const SERIES_PERIOD_LABEL: Record<Schemas["SeriesPeriod"], string> = {
+  DAY: "Ngày",
+  MONTH: "Tháng",
+  QUARTER: "Quý",
+  YEAR: "Năm",
+};
+
 export const TXN_TYPE_LABEL: Record<Schemas["TxnType"], string> = {
   COLLECT: "Thu",
   REFUND: "Hoàn",
@@ -73,6 +80,8 @@ export const SLIP_TYPE_LABEL: Record<Schemas["SlipType"], string> = {
   OUT_DISPOSAL: "Xuất hủy",
   OUT_TO_WAREHOUSE: "Xuất trả kho tổng",
   ADJUST_DOWN: "Điều chỉnh giảm",
+  OUT_TRANSFER: "Xuất điều chuyển",
+  IN_TRANSFER: "Nhập điều chuyển",
 };
 
 export const SLIP_STATUS_LABEL: Record<Schemas["SlipStatus"], string> = {
