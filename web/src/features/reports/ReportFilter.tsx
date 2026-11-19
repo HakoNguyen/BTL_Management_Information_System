@@ -4,6 +4,7 @@ import { Alert, Button, Descriptions, Form, Input, Select } from "antd";
 import type { ReactNode } from "react";
 import { client, unwrap } from "../../api/client";
 import { useAuth } from "../../auth";
+import { isoWeekRange } from "../../dateRange";
 import { dateTime } from "../../format";
 
 /** Kỳ lọc tính cả hai đầu; `branch_id` bỏ trống = toàn chuỗi (chỉ Trụ sở được chọn). */
@@ -55,6 +56,22 @@ export function ReportFilter<T extends ReportParams>(props: {
         Xem báo cáo
       </Button>
     </Form>
+  );
+}
+
+/** Chọn nhanh một tuần (thứ Hai đến Chủ nhật): điền sẵn Từ ngày, Đến ngày. Đặt làm con của ReportFilter. */
+export function WeekField() {
+  const form = Form.useFormInstance();
+  return (
+    <Form.Item label="Tuần">
+      <Input
+        type="week"
+        onChange={(event) => {
+          const range = isoWeekRange(event.target.value);
+          if (range) form.setFieldsValue({ from: range[0], to: range[1] });
+        }}
+      />
+    </Form.Item>
   );
 }
 

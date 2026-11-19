@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inDateRange, vnDate } from "./dateRange";
+import { inDateRange, isoWeekRange, vnDate } from "./dateRange";
 
 describe("vnDate", () => {
   it("đổi sang ngày giờ Việt Nam", () => {
@@ -26,5 +26,17 @@ describe("inDateRange", () => {
 
   it("chưa có thời điểm thì không khớp khi đang lọc", () => {
     expect(inDateRange(null, range)).toBe(false);
+  });
+});
+
+describe("isoWeekRange", () => {
+  it("trả thứ Hai đến Chủ nhật của tuần, kể cả tuần vắt qua năm", () => {
+    expect(isoWeekRange("2026-W47")).toEqual(["2026-11-16", "2026-11-22"]);
+    expect(isoWeekRange("2026-W01")).toEqual(["2025-12-29", "2026-01-04"]);
+    expect(isoWeekRange("2020-W53")).toEqual(["2020-12-28", "2021-01-03"]);
+  });
+
+  it("chuỗi rỗng (xóa ô tuần) thì null", () => {
+    expect(isoWeekRange("")).toBeNull();
   });
 });
