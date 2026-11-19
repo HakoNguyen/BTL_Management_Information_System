@@ -24,7 +24,7 @@ const SLIP_TYPES = typeOptions<SlipCreate["type"]>([
   "ADJUST_DOWN",
   "OUT_DISPOSAL",
   "OUT_TO_WAREHOUSE",
-  "OUT_TRANSFER",
+  // "OUT_TRANSFER", // 4.6 điều chuyển giữa chi nhánh: ngoài phạm vi báo cáo (mục 1.4, Bảng 29), ẩn khi demo
 ]);
 const ADJUST_TYPES: Slip["type"][] = ["ADJUST_UP", "ADJUST_DOWN"];
 // Chỉ phiếu điều chỉnh, xuất khác qua QL duyệt; phiếu nhập, xuất bán không (TK-03)

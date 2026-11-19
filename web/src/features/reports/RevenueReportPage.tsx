@@ -7,7 +7,7 @@ import { TXN_METHOD_LABEL, TXN_TYPE_LABEL } from "../../labels";
 import { moneyColumn } from "../../ui";
 import { BarChartCard, CHART_COLOR } from "./BarChartCard";
 import { byMethod } from "./byMethod";
-import { ReportFilter, ReportHeader, type ReportParams } from "./ReportFilter";
+import { ReportFilter, ReportHeader, WeekField, type ReportParams } from "./ReportFilter";
 import { RevenueTrendCard } from "./RevenueTrendCard";
 
 type Summary = Schemas["RevenueSummary"];
@@ -32,7 +32,9 @@ export function RevenueReportPage() {
 
   return (
     <Card title="Báo cáo doanh thu">
-      <ReportFilter onSubmit={setParams} />
+      <ReportFilter onSubmit={setParams}>
+        <WeekField />
+      </ReportFilter>
       <ReportHeader report={data} error={report.error} />
       {data && params && (
         <div style={{ marginBottom: 16 }}>
